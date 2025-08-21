@@ -96,15 +96,7 @@
     .discount input[type="range"] { width: 100%; }
     .kbd { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; background: transparent; border: 1px solid var(--primary); color: var(--primary); border-radius: 8px; padding: 4px 8px; font-weight: 700; }
 
-    /* Modal */
-    dialog { width: min(720px, 92vw); background: var(--panel); color: var(--text); border: 1px solid var(--border); border-radius: 18px; padding: 0; box-shadow: var(--shadow); }
-    dialog::backdrop { background: rgba(0, 0, 0, 0.6); }
-    .modal-header { display: flex; align-items: center; justify-content: space-between; padding: 16px 18px; border-bottom: 1px solid var(--border); }
-    .modal-body { padding: 16px; display: grid; gap: 18px; }
-    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-    @media (max-width: 700px) { .two-col { grid-template-columns: 1fr; } }
-    .option { display: flex; justify-content: space-between; align-items: center; padding: 10px 12px; border: 1px solid var(--border); border-radius: 12px; background: var(--card); }
-    .toppings { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px,1fr)); gap: 8px; }
+    .tabs .btn[aria-selected="true"] { outline: 2px solid var(--accent); }
 
     .cart-item { display: grid; grid-template-columns: 1fr auto auto; gap: 10px; align-items: center; padding: 8px 0; border-bottom: 1px dashed var(--border); }
     .cart-item:last-child { border-bottom: none; }
@@ -178,26 +170,42 @@
 
       <!-- Right: Summary -->
       <aside class="panel">
-        <h2>Order Summary</h2>
+        <h2>Orders</h2>
         <div class="content">
-          <div id="cart"></div>
-          <div class="divider"></div>
-
-          <div class="discount">
-            <label for="discountRange">Discount</label>
-            <div><span id="discountLabel" class="kbd">0%</span></div>
-            <input id="discountRange" type="range" min="0" max="100" step="5" value="0" aria-label="Discount percentage" />
+          <div class="tabs" role="tablist" aria-label="Order panels" style="display:flex; gap:8px; margin-bottom:10px;">
+            <button class="btn" data-tab="summary" aria-selected="true">🧾 Summary</button>
+            <button class="btn" data-tab="history" aria-selected="false">📜 History</button>
           </div>
 
-          <div class="summary" style="margin-top:12px;">
-            <div class="row"><span>Subtotal</span><strong id="subtotal">$0.00</strong></div>
-            <div class="row"><span>Discount</span><strong id="discount">-$0.00</strong></div>
-            <div class="row total"><span>Total</span><strong id="total">$0.00</strong></div>
+          <!-- SUMMARY TAB -->
+          <div id="tab-summary" role="tabpanel">
+            <div id="cart"></div>
+            <div class="divider"></div>
+
+            <div class="discount">
+              <label for="discountRange">Discount</label>
+              <div><span id="discountLabel" class="kbd" style="border-color: var(--primary); color: var(--primary);">0%</span></div>
+              <input id="discountRange" type="range" min="0" max="100" step="5" value="0" aria-label="Discount percentage" />
+            </div>
+
+            <div class="summary" style="margin-top:12px;">
+              <div class="row"><span>Subtotal</span><strong id="subtotal">$0.00</strong></div>
+              <div class="row"><span>Discount</span><strong id="discount">-$0.00</strong></div>
+              <div class="row total"><span>Total</span><strong id="total">$0.00</strong></div>
+            </div>
+
+            <div class="right-actions" style="margin-top:12px;">
+              <button class="btn primary block" id="checkoutBtn2">Checkout</button>
+              <button class="btn ghost block" id="resetBtn2">Clear All</button>
+            </div>
           </div>
 
-          <div class="right-actions" style="margin-top:12px;">
-            <button class="btn primary block" id="checkoutBtn2">Checkout</button>
-            <button class="btn ghost block" id="resetBtn2">Clear All</button>
+          <!-- HISTORY TAB -->
+          <div id="tab-history" role="tabpanel" hidden>
+            <div id="historyList" class="summary" style="gap:12px;"></div>
+            <div class="right-actions" style="margin-top:12px;">
+              <button class="btn ghost" id="clearHistoryBtn">Clear History</button>
+            </div>
           </div>
         </div>
       </aside>
@@ -319,12 +327,22 @@
     const state = {
       cart: [],
       discountPct: 0,
+      history: []
     };
 
     // Load from localStorage
     const saved = localStorage.getItem('pizza_calc_state');
     if (saved) {
-      try { Object.assign(state, JSON.parse(saved)); } catch {};
+      try { Object.assign(state, JSON.parse(saved)); } catch {}
+    }
+    const HISTORY_KEY = 'pizza_order_history';
+    const savedHist = localStorage.getItem(HISTORY_KEY);
+    if (savedHist) {
+      try { state.history = JSON.parse(savedHist); } catch {}
+    }
+
+    const persist = () => localStorage.setItem('pizza_calc_state', JSON.stringify({ cart: state.cart, discountPct: state.discountPct }));
+    const persistHistory = () => localStorage.setItem(HISTORY_KEY, JSON.stringify(state.history));
     }
 
     const persist = () => localStorage.setItem('pizza_calc_state', JSON.stringify(state));
@@ -435,6 +453,7 @@
     function renderAll(){
       renderCart();
       renderDiscount();
+      renderHistory();
     }
 
     // ---------- Cart Ops ----------
@@ -544,25 +563,66 @@
     });
 
     // ---------- Checkout / Reset ----------
-    function checkout() {
-      if (state.cart.length === 0) { alert('Your order is empty.'); return; }
-      const subtotal = state.cart.reduce((s,l)=>s + l.unitPrice*l.qty, 0);
-      const discount = +(subtotal * (state.discountPct/100)).toFixed(2);
-      const total = +(subtotal - discount).toFixed(2);
-      const summary = {
-        items: state.cart.map(l=>({ name: l.name, qty: l.qty, unit: l.unitPrice, meta: l.meta||null, lineTotal: +(l.unitPrice*l.qty).toFixed(2) })),
-        discountPct: state.discountPct,
-        subtotal: +subtotal.toFixed(2),
-        discount,
-        total,
-      };
-      alert('Order Summary\n' + JSON.stringify(summary, null, 2));
-    }
     document.getElementById('checkoutBtn').addEventListener('click', checkout);
     document.getElementById('checkoutBtn2').addEventListener('click', checkout);
 
     function resetAll(){ state.cart = []; state.discountPct = 0; persist(); renderAll(); }
     document.getElementById('resetBtn').addEventListener('click', resetAll);
+    document.getElementById('resetBtn2').addEventListener('click', resetAll);
+
+    // ---------- History ----------
+    function renderHistory(){
+      const list = document.getElementById('historyList');
+      if (!list) return;
+      if (!state.history || state.history.length === 0) {
+        list.innerHTML = '<div class="muted">No past orders yet. Checkout to save one.</div>';
+        return;
+      }
+      list.innerHTML = state.history.map(h => `
+        <article class="card">
+          <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
+            <div>
+              <div><strong>${new Date(h.id).toLocaleString()}</strong></div>
+              <div class="small">${h.items.length} item(s) • Discount: ${h.discountPct}%</div>
+            </div>
+            <div><strong>${currency(h.total)}</strong></div>
+          </div>
+          <details class="small" style="margin-top:6px;">
+            <summary>View items</summary>
+            <ul style="margin:6px 0 0 16px;">
+              ${h.items.map(i=>`<li>${i.qty}× ${i.name}${i.meta?` <span class=small>(${i.meta})</span>`:''} — ${currency(i.lineTotal)}</li>`).join('')}
+            </ul>
+          </details>
+          <div class="toolrow" style="justify-content:flex-end;">
+            <button class="btn" data-reorder="${h.id}">Reorder</button>
+            <button class="btn ghost" data-delete="${h.id}">Delete</button>
+          </div>
+        </article>
+      `).join('');
+
+      // attach handlers
+      list.querySelectorAll('[data-reorder]').forEach(btn=>btn.addEventListener('click',()=>{
+        const id = +btn.getAttribute('data-reorder');
+        const h = state.history.find(x=>x.id===id); if(!h) return;
+        h.items.forEach(it => addToCart({ name: it.name, unitPrice: it.unit, qty: it.qty, meta: it.meta }));
+        alert('Items added back to cart from history.');
+      }));
+      list.querySelectorAll('[data-delete]').forEach(btn=>btn.addEventListener('click',()=>{
+        const id = +btn.getAttribute('data-delete');
+        state.history = state.history.filter(x=>x.id!==id); persistHistory(); renderHistory();
+      }));
+    }
+    const clearBtn = document.getElementById('clearHistoryBtn');
+    if (clearBtn) clearBtn.addEventListener('click', ()=>{ if(confirm('Clear all saved orders?')){ state.history=[]; persistHistory(); renderHistory(); }});
+
+    // ---------- Tabs ----------
+    const tabButtons = document.querySelectorAll('[data-tab]');
+    tabButtons.forEach(b=>b.addEventListener('click', ()=>{
+      const t = b.getAttribute('data-tab');
+      document.getElementById('tab-summary').hidden = t!=='summary';
+      document.getElementById('tab-history').hidden = t!=='history';
+      tabButtons.forEach(x=>x.setAttribute('aria-selected', String(x===b)));
+    }));
     document.getElementById('resetBtn2').addEventListener('click', resetAll);
 
     // ---------- Init ----------
