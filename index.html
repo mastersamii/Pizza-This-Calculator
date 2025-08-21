@@ -182,10 +182,24 @@
             </div>
 
             <div class="divider"></div>
+
             <div class="discount">
               <label for="discountRange">Discount</label>
               <div><span id="discountLabel" class="kbd">0%</span></div>
               <input id="discountRange" type="range" min="0" max="100" step="5" value="0" />
+            </div>
+
+            <!-- Promotion selector -->
+            <div class="discount" style="margin-top:10px;">
+              <label for="promoSelect">Promotion</label>
+              <div style="grid-column: span 1 / -1; display:flex; gap:10px; align-items:center;">
+                <select id="promoSelect" class="btn" style="padding:8px 10px;">
+                  <option value="none">None</option>
+                  <option value="bogo50">Mon–Wed: BOGO 50% (pizzas)</option>
+                  <option value="breadsticks">Thu–Sat: Free Breadsticks (max 4 w/ Get Stuffed)</option>
+                </select>
+                <span class="small" id="promoHelp"></span>
+              </div>
             </div>
 
             <div class="summary" style="margin-top:12px;">
@@ -291,7 +305,7 @@
         { id: 'ex-soda',  name: '🥤 Soda',        price: 10, type:'extra' },
         { id: 'ex-capri', name: '🧃 Capri-Sun',   price: 15, type:'extra' },
         { id: 'ex-water', name: '🚰 Water',       price: 10, type:'extra' },
-        { id: 'ex-beer',  name: '🍺 Beer',        price: 14, type:'extra' },
+        { id: 'ex-beer',  name: '🍺 Beer',        price: 18.2, type:'extra' }, <!-- 30% markup applied -->
         { id: 'ex-lunch', name: '🍱 Lunch Box',   price: 360, type:'extra' },
       ],
       builder: {
@@ -328,16 +342,20 @@
     const currency = n => `$${n.toFixed(2)}`;
 
     // ---------- State ----------
-    const STATE_KEY = 'pizza_calc_state_v4';
-    const HIST_KEY  = 'pizza_order_history_v4';
-    const state = { cart: [], discountPct: 0, history: [] };
+    const STATE_KEY = 'pizza_calc_state_v5';
+    const HIST_KEY  = 'pizza_order_history_v5';
+    const state = { cart: [], discountPct: 0, history: [], selectedPromo: 'none' };
     try {
       const saved = JSON.parse(localStorage.getItem(STATE_KEY) || '{}');
       const savedHist = JSON.parse(localStorage.getItem(HIST_KEY) || '[]');
       if (Array.isArray(savedHist)) state.history = savedHist;
-      if (saved && Array.isArray(saved.cart)) { state.cart = saved.cart; state.discountPct = saved.discountPct || 0; }
+      if (saved) {
+        if (Array.isArray(saved.cart)) state.cart = saved.cart;
+        if (typeof saved.discountPct === 'number') state.discountPct = saved.discountPct;
+        if (typeof saved.selectedPromo === 'string') state.selectedPromo = saved.selectedPromo;
+      }
     } catch {}
-    const persist = () => localStorage.setItem(STATE_KEY, JSON.stringify({ cart: state.cart, discountPct: state.discountPct }));
+    const persist = () => localStorage.setItem(STATE_KEY, JSON.stringify({ cart: state.cart, discountPct: state.discountPct, selectedPromo: state.selectedPromo }));
     const persistHistory = () => localStorage.setItem(HIST_KEY, JSON.stringify(state.history));
 
     // ---------- Render Helpers ----------
@@ -403,7 +421,7 @@
             <output>${l.qty}</output>
             <button data-inc="${idx}">+</button>
           </div>
-            <div><strong>${currency(l.unitPrice*l.qty)}</strong></div>
+          <div><strong>${currency(l.unitPrice*l.qty)}</strong></div>
         </div>`).join('');
 
       cart.querySelectorAll('[data-inc]').forEach(b=>b.addEventListener('click',()=>{ const i=+b.getAttribute('data-inc'); state.cart[i].qty++; persist(); renderCart(); renderTotals(); }));
@@ -419,13 +437,11 @@
 
     // ---------- Promotions ----------
     function computePromotions(){
-      const day = new Date().getDay(); // 0 Sun .. 6 Sat
       let notes = [];
       let discount = 0;
 
-      // 1) Mon–Wed: Buy one pizza, get one half off (applies to pizzas incl. custom)
-      if (day>=1 && day<=3){
-        // expand pizza prices by unit
+      // BOGO 50% (pizzas only)
+      if (state.selectedPromo === 'bogo50'){
         const unitPrices = [];
         state.cart.forEach(l=>{
           if (l.type === 'pizza' || l.name === 'Custom Pizza'){
@@ -433,28 +449,31 @@
           }
         });
         if (unitPrices.length >= 2){
-          unitPrices.sort((a,b)=>b-a); // high -> low
+          unitPrices.sort((a,b)=>b-a);
           for (let i=0;i<unitPrices.length; i+=2){
-            const p1 = unitPrices[i];
-            const p2 = unitPrices[i+1];
-            if (typeof p2 === 'number') discount += p2 * 0.5; // cheaper half off
+            const cheaper = unitPrices[i+1];
+            if (typeof cheaper === 'number') discount += cheaper * 0.5;
           }
-          if (discount>0) notes.push('Mon–Wed BOGO 50% on pizzas applied');
+          if (discount>0) notes.push('BOGO 50% on pizzas applied');
         }
       }
 
-      // 2) Thu–Sat: Free breadsticks with any Get Stuffed deal (max 4 free per order)
-      if (day>=4 && day<=6){
-        const hasDealQty = state.cart.reduce((s,l)=> s + ((l.type==='deal')?l.qty:0), 0);
-        if (hasDealQty>0){
-          const bread = state.cart.find(l=>l.id==='ex-bread' || /breadsticks/i.test(l.name));
+      // Free breadsticks (max 4) with any Get Stuffed deal in cart
+      if (state.selectedPromo === 'breadsticks'){
+        const dealQty = state.cart.reduce((s,l)=> s + ((l.type==='deal')?l.qty:0), 0);
+        if (dealQty>0){
+          const bread = state.cart.find(l=>/breadsticks/i.test(l.name));
           if (bread){
             const freeQty = Math.min(4, bread.qty);
             if (freeQty>0){
               discount += freeQty * bread.unitPrice;
-              notes.push(`Thu–Sat free breadsticks (${freeQty}) with Get Stuffed`);
+              notes.push(`Free breadsticks (${freeQty}) with Get Stuffed`);
             }
+          } else {
+            notes.push('Add breadsticks to see the promo apply (max 4 free).');
           }
+        } else {
+          notes.push('Requires a Get Stuffed deal in cart.');
         }
       }
 
@@ -479,6 +498,21 @@
     const discountLabel = document.getElementById('discountLabel');
     function renderDiscount(){ range.value = state.discountPct; discountLabel.textContent = `${state.discountPct}%`; }
     range.addEventListener('input', ()=>{ state.discountPct = +range.value; persist(); renderTotals(); discountLabel.textContent = `${state.discountPct}%`; });
+
+    // ---------- Promotion select ----------
+    const promoSelect = document.getElementById('promoSelect');
+    const promoHelp = document.getElementById('promoHelp');
+    function renderPromoSelect(){
+      promoSelect.value = state.selectedPromo;
+      promoHelp.textContent =
+        state.selectedPromo === 'bogo50' ? 'Pairs pizzas; cheaper one in each pair is 50% off.' :
+        state.selectedPromo === 'breadsticks' ? 'Up to 4 breadsticks free when any Get Stuffed deal is in cart.' :
+        'No automatic promotion applied.';
+    }
+    promoSelect.addEventListener('change', ()=>{
+      state.selectedPromo = promoSelect.value;
+      persist(); renderPromoSelect(); renderTotals();
+    });
 
     // ---------- History ----------
     function renderHistory(){
@@ -519,111 +553,4 @@
     document.getElementById('clearHistoryBtn').addEventListener('click',()=>{ if(confirm('Clear all saved orders?')){ state.history=[]; persistHistory(); renderHistory(); } });
 
     // ---------- Tabs ----------
-    const tabButtons = document.querySelectorAll('[data-tab]');
-    function selectTab(which){
-      document.getElementById('tab-summary').hidden = which!== 'summary';
-      document.getElementById('tab-history').hidden = which!== 'history';
-      tabButtons.forEach(b=>b.setAttribute('aria-selected', String(b.getAttribute('data-tab')===which)));
-    }
-    tabButtons.forEach(b=>b.addEventListener('click',()=>selectTab(b.getAttribute('data-tab'))));
-
-    // ---------- Build Pizza Modal ----------
-    const modal = document.getElementById('pizzaModal');
-    const sizeWrap = document.getElementById('sizeOptions');
-    const crustWrap = document.getElementById('crustOptions');
-    const toppingWrap = document.getElementById('toppingOptions');
-    const livePrice = document.getElementById('livePrice');
-    const qtyOutput = document.getElementById('qtyOutput');
-
-    const buildState = { size: MENU.builder.sizes[2], crust: MENU.builder.crusts[0], toppings: new Set(), qty: 1 };
-
-    function renderBuilder(){
-      sizeWrap.innerHTML = MENU.builder.sizes.map(s=>`
-        <label class="option"><span>${s.name}</span>
-          <span>${currency(s.price)} <input type="radio" name="size" value="${s.id}" ${s.id===buildState.size.id?'checked':''}></span>
-        </label>`).join('');
-      crustWrap.innerHTML = MENU.builder.crusts.map(c=>`
-        <label class="option"><span>${c.name}</span>
-          <span>${c.price?`+${currency(c.price)}`:'Included'} <input type="radio" name="crust" value="${c.id}" ${c.id===buildState.crust.id?'checked':''}></span>
-        </label>`).join('');
-
-      const groups = MENU.builder.toppings.reduce((acc,t)=>{ (acc[t.cat] ||= []).push(t); return acc; }, {});
-      toppingWrap.innerHTML = Object.entries(groups).map(([cat,items])=>`
-        <div>
-          <h5 style="margin:6px 0">${cat}</h5>
-          ${items.map(t=>`
-            <label class="option"><span>${t.name}</span>
-              <span>${currency(t.price)} <input type="checkbox" value="${t.name}" ${buildState.toppings.has(t.name)?'checked':''}></span>
-            </label>`).join('')}
-        </div>`).join('');
-
-      sizeWrap.querySelectorAll('input[name="size"]').forEach(r=>r.addEventListener('change',e=>{ buildState.size = MENU.builder.sizes.find(s=>s.id===e.target.value); updateLivePrice(); }));
-      crustWrap.querySelectorAll('input[name="crust"]').forEach(r=>r.addEventListener('change',e=>{ buildState.crust = MENU.builder.crusts.find(c=>c.id===e.target.value); updateLivePrice(); }));
-      toppingWrap.querySelectorAll('input[type="checkbox"]').forEach(c=>c.addEventListener('change',e=>{ const v=e.target.value; if(e.target.checked) buildState.toppings.add(v); else buildState.toppings.delete(v); updateLivePrice(); }));
-    }
-
-    function calcPizzaPrice(){
-      const base = buildState.size.price + buildState.crust.price;
-      const tops = [...buildState.toppings].reduce((s,name)=>{
-        const t = MENU.builder.toppings.find(x=>x.name===name); return s + (t?t.price:0);
-      },0);
-      return +(base + tops).toFixed(2);
-    }
-    function updateLivePrice(){ livePrice.textContent = currency(calcPizzaPrice() * buildState.qty); }
-
-    document.getElementById('qtyMinus').addEventListener('click',()=>{ buildState.qty=Math.max(1,buildState.qty-1); qtyOutput.value=buildState.qty; updateLivePrice(); });
-    document.getElementById('qtyPlus').addEventListener('click',()=>{ buildState.qty++; qtyOutput.value=buildState.qty; updateLivePrice(); });
-    document.getElementById('buildPizzaBtn').addEventListener('click',()=>{ renderBuilder(); updateLivePrice(); modal.showModal(); });
-    document.getElementById('closeModal').addEventListener('click',()=> modal.close());
-    document.getElementById('addPizzaBtn').addEventListener('click',()=>{
-      const unit = calcPizzaPrice();
-      const meta = `${buildState.size.name}, ${buildState.crust.name}${buildState.toppings.size?`, ${[...buildState.toppings].join(', ')}`:''}`;
-      addToCart({ name:'Custom Pizza', unitPrice:unit, qty:buildState.qty, meta, type:'pizza' });
-      buildState.qty = 1; qtyOutput.value = 1; updateLivePrice(); modal.close();
-    });
-
-    // ---------- Discount & Tabs ----------
-    function renderAll(){ renderCards(); renderCart(); renderTotals(); renderDiscount(); renderHistory(); }
-
-    // ---------- Checkout / Reset ----------
-    function checkout(){
-      if (!state.cart.length){ alert('Your order is empty.'); return; }
-      const subtotal = state.cart.reduce((s,l)=>s + l.unitPrice*l.qty, 0);
-      const manual = +(subtotal * (state.discountPct/100)).toFixed(2);
-      const promo = computePromotions();
-      const total = +(subtotal - manual - promo.discount).toFixed(2);
-      const entry = {
-        id: Date.now(),
-        items: state.cart.map(l=>({ name:l.name, qty:l.qty, unit:l.unitPrice, meta:l.meta||null, lineTotal:+(l.unitPrice*l.qty).toFixed(2) })),
-        discountPct: state.discountPct,
-        subtotal:+subtotal.toFixed(2),
-        discount: manual + promo.discount,
-        total
-      };
-      state.history.unshift(entry); persistHistory();
-      state.cart = []; state.discountPct = 0; persist();
-      renderAll(); selectTab('history');
-    }
-    function resetAll(){ state.cart = []; state.discountPct = 0; persist(); renderAll(); }
-
-    document.getElementById('checkoutBtn').addEventListener('click', checkout);
-    document.getElementById('checkoutBtn2').addEventListener('click', checkout);
-    document.getElementById('resetBtn').addEventListener('click', resetAll);
-    document.getElementById('resetBtn2').addEventListener('click', resetAll);
-
-    // ---------- Theme ----------
-    const themeBtn = document.getElementById('themeBtn');
-    function applyTheme(t){
-      document.documentElement.setAttribute('data-theme', t);
-      localStorage.setItem('pizza_theme', t);
-      themeBtn.textContent = t==='dark' ? '☀️ Light' : '🌙 Dark';
-      themeBtn.setAttribute('aria-pressed', t==='dark');
-    }
-    applyTheme(localStorage.getItem('pizza_theme') || 'light');
-    themeBtn.addEventListener('click',()=>{ const next = (localStorage.getItem('pizza_theme')||'light')==='light' ? 'dark' : 'light'; applyTheme(next); });
-
-    // ---------- Init ----------
-    renderAll();
-  </script>
-</body>
-</html>
+    const tabButtons
