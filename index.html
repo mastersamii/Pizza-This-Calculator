@@ -51,7 +51,6 @@
       font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, "Helvetica Neue", Arial, "Apple Color Emoji", "Segoe UI Emoji";
     }
     h1, h2, h3, h4 { font-family: Georgia, "Times New Roman", serif; letter-spacing: .2px; }
-    }
     .container { max-width: 1200px; margin: 32px auto; padding: 0 16px; }
     header { display: flex; gap: 16px; align-items: center; justify-content: space-between; margin-bottom: 20px; }
     .brand { display: flex; align-items: center; gap: 12px; }
@@ -343,9 +342,6 @@
 
     const persist = () => localStorage.setItem('pizza_calc_state', JSON.stringify({ cart: state.cart, discountPct: state.discountPct }));
     const persistHistory = () => localStorage.setItem(HISTORY_KEY, JSON.stringify(state.history));
-    }
-
-    const persist = () => localStorage.setItem('pizza_calc_state', JSON.stringify(state));
 
     // ---------- Render Helpers ----------
     function renderCards() {
