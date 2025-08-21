@@ -1,97 +1,104 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Pizza This — Order Calculator</title>
-<style>
-  :root {
-    /* Italian palette */
-    --red:#d32f2f; --green:#2e7d32; --white:#ffffff;
-    --ink:#1f2430; --muted:#5d677b; --border:#e5e7ef;
-    --shadow:0 10px 30px rgba(0,0,0,.08);
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pizza This — Order Calculator</title>
+  <style>
+    :root {
+      /* Italian palette */
+      --red: #d32f2f;
+      --green: #2e7d32;
+      --white: #ffffff;
+      --ink: #1f2430;
+      --muted: #5d677b;
+      --border: #e5e7ef;
+      --shadow: 0 10px 30px rgba(0,0,0,.08);
 
-    --bg:#fafafa; --panel:#ffffff; --card:#ffffff; --chip:#f5f6fb; --text:var(--ink);
-    --accent:var(--green); --radius:16px;
+      --bg: #fafafa;
+      --panel: #ffffff;
+      --card: #ffffff;
+      --chip: #f5f6fb;
+      --text: var(--ink);
+      --accent: var(--green);
+      --radius: 16px;
 
-    /* Dark theme tokens (applied via [data-theme="dark"]) */
-    --bg-dark:#0f1220; --panel-dark:#13172a; --card-dark:#171c33;
-    --chip-dark:#222847; --text-dark:#e8ecf8; --border-dark:#2a3156;
-  }
-  [data-theme="dark"]{
-    --bg:var(--bg-dark); --panel:var(--panel-dark); --card:var(--card-dark);
-    --chip:var(--chip-dark); --text:var(--text-dark); --border:var(--border-dark);
-  }
+      /* Dark theme tokens */
+      --bg-dark:#0f1220; --panel-dark:#13172a; --card-dark:#171c33;
+      --chip-dark:#222847; --text-dark:#e8ecf8; --border-dark:#2a3156;
+    }
+    [data-theme="dark"] {
+      --bg: var(--bg-dark);
+      --panel: var(--panel-dark);
+      --card: var(--card-dark);
+      --chip: var(--chip-dark);
+      --text: var(--text-dark);
+      --border: var(--border-dark);
+    }
+    * { box-sizing: border-box; }
+    html, body { margin:0; background:var(--bg); color:var(--text); font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Arial; }
+    h1,h2,h3,h4{ font-family: Georgia, "Times New Roman", serif; letter-spacing:.2px; }
 
-  *{box-sizing:border-box}
-  html,body{margin:0;background:var(--bg);color:var(--text);
-    font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,Arial}
-  h1,h2,h3,h4{font-family:Georgia,"Times New Roman",serif;letter-spacing:.2px;}
+    .container{ max-width:1200px; margin:32px auto; padding:0 16px; }
+    header{ display:flex; gap:16px; align-items:center; justify-content:space-between; margin-bottom:20px; }
+    .brand{ display:flex; align-items:center; gap:12px; }
+    .brand .logo{ width:48px; height:48px; border-radius:12px; box-shadow:var(--shadow); position:relative; background:linear-gradient(135deg, var(--white) 0 33%, var(--green) 33% 66%, var(--red) 66% 100%); }
+    .brand .logo::after{ content:"🍕"; position:absolute; inset:0; display:grid; place-items:center; font-size:22px; }
+    .brand h1{ margin:0; font-size:1.4rem; letter-spacing:.3px; }
 
-  .container{max-width:1200px;margin:32px auto;padding:0 16px}
-  header{display:flex;gap:16px;align-items:center;justify-content:space-between;margin-bottom:20px}
-  .brand{display:flex;align-items:center;gap:12px}
-  .brand .logo{width:48px;height:48px;border-radius:12px;box-shadow:var(--shadow);position:relative;
-    background:linear-gradient(135deg,var(--white) 0 33%,var(--green) 33% 66%,var(--red) 66% 100%)}
-  .brand .logo::after{content:"🍕";position:absolute;inset:0;display:grid;place-items:center;font-size:22px}
-  .brand h1{font-size:1.4rem;margin:0;letter-spacing:.3px}
+    .grid{ display:grid; grid-template-columns:1.2fr .8fr; gap:20px; }
+    @media (max-width:980px){ .grid{ grid-template-columns:1fr; } }
 
-  .grid{display:grid;grid-template-columns:1.2fr .8fr;gap:20px}
-  @media (max-width:980px){.grid{grid-template-columns:1fr}}
+    .panel{ background:var(--panel); border:1px solid var(--border); border-radius:var(--radius); box-shadow:var(--shadow); }
+    .panel h2{ margin:0; padding:16px 18px; font-size:1rem; border-bottom:1px solid var(--border); }
+    .panel .content{ padding:16px; }
 
-  .panel{background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow)}
-  .panel h2{margin:0;padding:16px 18px;font-size:1rem;letter-spacing:.5px;border-bottom:1px solid var(--border);color:var(--text)}
-  .panel .content{padding:16px}
+    .section{ margin-bottom:16px; }
+    .cards{ display:grid; grid-template-columns:repeat(auto-fill,minmax(240px,1fr)); gap:12px; }
 
-  .section{margin-bottom:16px}
-  .cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px}
+    .card{ background:var(--card); border:1px solid var(--border); border-radius:14px; padding:12px; box-shadow:var(--shadow); display:flex; flex-direction:column; gap:8px; }
+    .card h3{ margin:0; font-size:1rem; }
+    .price{ color:var(--accent); font-weight:700; }
+    .muted{ color:var(--muted); font-size:.9rem; }
 
-  .card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:12px;box-shadow:var(--shadow);display:flex;flex-direction:column;gap:8px}
-  .card h3{margin:0;font-size:1rem}
-  .price{color:var(--accent);font-weight:700}
-  .muted{color:var(--muted);font-size:.9rem}
+    .qty{ display:grid; grid-template-columns:32px 1fr 32px; align-items:center; gap:8px; margin-top:6px; }
+    .qty button{ height:36px; border-radius:10px; border:1px solid var(--border); background:var(--chip); color:var(--text); cursor:pointer; font-size:18px; }
+    .qty output{ text-align:center; }
 
-  .qty{display:grid;grid-template-columns:32px 1fr 32px;align-items:center;gap:8px;margin-top:6px}
-  .qty button{height:36px;border-radius:10px;border:1px solid var(--border);background:var(--chip);color:var(--text);cursor:pointer;font-size:18px}
-  .qty output{text-align:center}
+    .btn{ display:inline-flex; align-items:center; justify-content:center; gap:8px; padding:10px 14px; border-radius:12px; border:1px solid var(--border); background:var(--chip); color:var(--text); cursor:pointer; font-weight:600; text-decoration:none; }
+    .btn.primary{ background:linear-gradient(135deg, var(--green), var(--red)); border:none; color:#fff; }
+    .btn.block{ width:100%; }
+    .btn.ghost{ background:transparent; }
 
-  .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:10px 14px;border-radius:12px;border:1px solid var(--border);background:var(--chip);color:var(--text);cursor:pointer;text-decoration:none;font-weight:600}
-  .btn.primary{background:linear-gradient(135deg,var(--green),var(--red));border:none;color:#fff}
-  .btn.block{width:100%}
-  .btn.ghost{background:transparent}
+    .toolrow{ display:flex; gap:12px; flex-wrap:wrap; align-items:center; }
+    .chip{ padding:6px 10px; border-radius:999px; background:var(--chip); border:1px solid var(--border); color:var(--muted); font-weight:700; font-size:.85rem; }
 
-  .toolrow{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
-  .chip{padding:6px 10px;border-radius:999px;background:var(--chip);border:1px solid var(--border);color:var(--muted);font-weight:600;font-size:.85rem}
+    .divider{ height:1px; background:var(--border); margin:8px 0; }
+    .summary{ display:flex; flex-direction:column; gap:14px; }
+    .summary .row{ display:flex; justify-content:space-between; align-items:center; }
+    .summary .row.total{ font-size:1.2rem; font-weight:800; }
 
-  .divider{height:1px;background:var(--border);margin:8px 0}
-  .summary{display:flex;flex-direction:column;gap:14px}
-  .summary .row{display:flex;justify-content:space-between;align-items:center}
-  .summary .row.total{font-size:1.2rem;font-weight:800}
+    .discount{ display:grid; grid-template-columns:1fr auto; gap:10px; align-items:center; }
+    .discount input[type="range"]{ width:100%; }
+    .kbd{ font-family: ui-monospace, Menlo, Consolas, monospace; background:transparent; border:2px solid #ff4d4d; color:#ff4d4d; border-radius:8px; padding:4px 8px; font-weight:800; }
 
-  .discount{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center}
-  .discount input[type="range"]{width:100%}
-  .kbd{font-family:ui-monospace,Menlo,Consolas,monospace;background:transparent;border:2px solid #ff4d4d;color:#ff4d4d;border-radius:8px;padding:4px 8px;font-weight:800}
+    .order-card{ background:var(--card); border:1px solid var(--border); border-radius:14px; padding:6px; }
+    .cart-item{ display:grid; grid-template-columns:1fr auto auto; gap:10px; align-items:center; padding:8px; border-bottom:1px dashed var(--border); }
+    .cart-item:last-child{ border-bottom:none; }
+    .small{ font-size:.85rem; color:var(--muted); }
 
-  /* Cart lines as cards */
-  .order-card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:6px}
-  .cart-item{display:grid;grid-template-columns:1fr auto auto;gap:10px;align-items:center;padding:8px;border-bottom:1px dashed var(--border)}
-  .cart-item:last-child{border-bottom:none}
-  .small{font-size:.85rem;color:var(--muted)}
+    .tabs{ display:flex; gap:8px; margin-bottom:10px; }
+    .tabs .btn[aria-selected="true"]{ outline:2px solid var(--accent); }
 
-  /* Tabs */
-  .tabs{display:flex;gap:8px;margin-bottom:10px}
-  .tabs .btn[aria-selected="true"]{outline:2px solid var(--accent)}
-
-  /* Modal */
-  dialog{width:min(720px,92vw);background:var(--panel);color:var(--text);border:1px solid var(--border);border-radius:18px;padding:0;box-shadow:var(--shadow)}
-  dialog::backdrop{background:rgba(0,0,0,.6)}
-  .modal-header{display:flex;align-items:center;justify-content:space-between;padding:16px 18px;border-bottom:1px solid var(--border)}
-  .modal-body{padding:16px;display:grid;gap:18px}
-  .two-col{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-  @media (max-width:700px){.two-col{grid-template-columns:1fr}}
-  .option{display:flex;justify-content:space-between;align-items:center;padding:10px 12px;border:1px solid var(--border);border-radius:12px;background:var(--card)}
-  .toppings{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px}
-</style>
+    dialog{ width:min(720px,92vw); background:var(--panel); color:var(--text); border:1px solid var(--border); border-radius:18px; padding:0; box-shadow:var(--shadow); }
+    dialog::backdrop{ background:rgba(0,0,0,.6); }
+    .modal-header{ display:flex; align-items:center; justify-content:space-between; padding:16px 18px; border-bottom:1px solid var(--border); }
+    .modal-body{ padding:16px; display:grid; gap:18px; }
+    .two-col{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+    @media (max-width:700px){ .two-col{ grid-template-columns:1fr; } }
+    .option{ display:flex; justify-content:space-between; align-items:center; padding:10px 12px; border:1px solid var(--border); border-radius:12px; background:var(--card); }
+    .toppings{ display:grid; grid-template-columns:repeat(auto-fill,minmax(180px,1fr)); gap:8px; }
+  </style>
 </head>
 <body>
   <div class="container">
@@ -148,6 +155,11 @@
           </div>
 
           <div class="section">
+            <h3 style="margin:0 0 8px 0">Meal Bundles</h3>
+            <div class="cards" id="bundles"></div>
+          </div>
+
+          <div class="section">
             <h3 style="margin:0 0 8px 0">Sides & Drinks</h3>
             <div class="cards" id="extras"></div>
           </div>
@@ -179,7 +191,9 @@
             <div class="summary" style="margin-top:12px;">
               <div class="row"><span>Subtotal</span><strong id="subtotal">$0.00</strong></div>
               <div class="row"><span>Discount</span><strong id="discount">-$0.00</strong></div>
+              <div class="row"><span>Promotions</span><strong id="promotions">-$0.00</strong></div>
               <div class="row total"><span>Total</span><strong id="total">$0.00</strong></div>
+              <div class="small" id="promoNotes"></div>
             </div>
 
             <div class="right-actions" style="margin-top:12px;">
@@ -250,335 +264,366 @@
     </div>
   </dialog>
 
-<script>
-/* ---------- Data ---------- */
-const MENU = {
-  classic: [
-    { id:'cl-margh',  name:'🍅🧀🌿 Margherita', price:200 },
-    { id:'cl-pepp',   name:'🍕 Pepperoni',      price:200 },
-    { id:'cl-salami', name:'🥩 Salami',        price:200 },
-    { id:'cl-hamche', name:'🐷🧀 Ham & Cheese', price:200 },
-  ],
-  specialty: [
-    { id:'sp-veg',  name:'🥦🍄 Vegetarian', price:250 },
-    { id:'sp-haw',  name:'🍍 Hawaiian',    price:250 },
-    { id:'sp-diav', name:'🌶️ Diavola',     price:250 },
-  ],
-  deals: [
-    { id:'dl-classic', name:'Get Stuffed — Classic',   price:800 },
-    { id:'dl-special', name:'Get Stuffed — Specialty', price:1000 },
-  ],
-  extras: [
-    { id:'ex-bread', name:'🧄 Breadsticks', price:50 },
-    { id:'ex-soda',  name:'🥤 Soda',        price:10 },
-    { id:'ex-capri', name:'🧃 Capri-Sun',   price:15 },
-    { id:'ex-water', name:'🚰 Water',       price:10 },
-    { id:'ex-lunch', name:'🍱 Lunch Box',   price:360 },
-  ],
-  builder: {
-    sizes: [
-      { id:'sz-s',  name:'Small 10"',  price:120 },
-      { id:'sz-m',  name:'Medium 12"', price:160 },
-      { id:'sz-l',  name:'Large 14"',  price:200 },
-      { id:'sz-xl', name:'XL 16"',     price:240 },
-    ],
-    crusts: [
-      { id:'cr-hand', name:'Hand Tossed', price:0 },
-      { id:'cr-thin', name:'Thin',        price:10 },
-      { id:'cr-deep', name:'Deep Dish',   price:25 },
-      { id:'cr-gf',   name:'Gluten Free', price:30 },
-    ],
-    toppings: [
-      { name:'Pepperoni',   price:8,  cat:'Meats' },
-      { name:'Salami',      price:8,  cat:'Meats' },
-      { name:'Ham',         price:8,  cat:'Meats' },
-      { name:'Pineapple',   price:6,  cat:'Veggies' },
-      { name:'Jalapeño',    price:6,  cat:'Veggies' },
-      { name:'Bell Pepper', price:5,  cat:'Veggies' },
-      { name:'Black Olive', price:8,  cat:'Veggies' },
-      { name:'Pizza Cheese', price:4, cat:'Cheeses' },
-      { name:'Mozzarella',   price:10, cat:'Cheeses' },
-      { name:'Tomato Sauce', price:10, cat:'Pantry' },
-      { name:'Olive Oil',    price:8,  cat:'Pantry' },
-      { name:'Yeast',        price:10, cat:'Pantry' },
-      { name:'Flour',        price:6,  cat:'Pantry' },
-    ],
-  }
-};
-const currency = n => `$${n.toFixed(2)}`;
+  <script>
+    // ---------- Data ----------
+    const MENU = {
+      classic: [
+        { id: 'cl-margh', name: '🍅🧀🌿 Margherita', price: 200, type:'pizza' },
+        { id: 'cl-pepp',  name: '🍕 Pepperoni',      price: 200, type:'pizza' },
+        { id: 'cl-salami',name: '🥩 Salami',         price: 200, type:'pizza' },
+        { id: 'cl-hamche',name: '🐷🧀 Ham & Cheese',  price: 200, type:'pizza' },
+      ],
+      specialty: [
+        { id: 'sp-veg',   name: '🥦🍄 Vegetarian',  price: 250, type:'pizza' },
+        { id: 'sp-haw',   name: '🍍 Hawaiian',     price: 250, type:'pizza' },
+        { id: 'sp-diav',  name: '🌶️ Diavola',      price: 250, type:'pizza' },
+      ],
+      deals: [
+        { id: 'dl-classic', name: 'Get Stuffed — Classic',   price: 800, type:'deal' },
+        { id: 'dl-special', name: 'Get Stuffed — Specialty', price: 1000, type:'deal' },
+      ],
+      bundles: [
+        { id: 'bd-medium', name: '🍕 Medium Pizza Meal — 4 Classic + 4 Drinks', price: 240, type:'bundle' },
+        { id: 'bd-large',  name: '🍕 Large Pizza Meal — 8 Classic + 8 Drinks',   price: 450, type:'bundle' },
+      ],
+      extras: [
+        { id: 'ex-bread', name: '🧄 Breadsticks', price: 50, type:'extra' },
+        { id: 'ex-soda',  name: '🥤 Soda',        price: 10, type:'extra' },
+        { id: 'ex-capri', name: '🧃 Capri-Sun',   price: 15, type:'extra' },
+        { id: 'ex-water', name: '🚰 Water',       price: 10, type:'extra' },
+        { id: 'ex-beer',  name: '🍺 Beer',        price: 14, type:'extra' },
+        { id: 'ex-lunch', name: '🍱 Lunch Box',   price: 360, type:'extra' },
+      ],
+      builder: {
+        sizes: [
+          { id: 'sz-s',  name: 'Small 10"',  price: 120 },
+          { id: 'sz-m',  name: 'Medium 12"', price: 160 },
+          { id: 'sz-l',  name: 'Large 14"',  price: 200 },
+          { id: 'sz-xl', name: 'XL 16"',     price: 240 },
+        ],
+        crusts: [
+          { id: 'cr-hand', name: 'Hand Tossed', price: 0 },
+          { id: 'cr-thin', name: 'Thin',        price: 10 },
+          { id: 'cr-deep', name: 'Deep Dish',   price: 25 },
+          { id: 'cr-gf',   name: 'Gluten Free', price: 30 },
+        ],
+        toppings: [
+          { name: 'Pepperoni',   price: 8,  cat: 'Meats' },
+          { name: 'Salami',      price: 8,  cat: 'Meats' },
+          { name: 'Ham',         price: 8,  cat: 'Meats' },
+          { name: 'Pineapple',   price: 6,  cat: 'Veggies' },
+          { name: 'Jalapeño',    price: 6,  cat: 'Veggies' },
+          { name: 'Bell Pepper', price: 5,  cat: 'Veggies' },
+          { name: 'Black Olive', price: 8,  cat: 'Veggies' },
+          { name: 'Pizza Cheese', price: 4, cat: 'Cheeses' },
+          { name: 'Mozzarella',   price: 10, cat: 'Cheeses' },
+          { name: 'Tomato Sauce', price: 10, cat: 'Pantry' },
+          { name: 'Olive Oil',    price: 8,  cat: 'Pantry' },
+          { name: 'Yeast',        price: 10, cat: 'Pantry' },
+          { name: 'Flour',        price: 6,  cat: 'Pantry' },
+        ],
+      }
+    };
 
-/* ---------- State & Persistence ---------- */
-const STATE_KEY = 'pizza_calc_state_v3';
-const HIST_KEY  = 'pizza_order_history_v3';
+    const currency = n => `$${n.toFixed(2)}`;
 
-const state = { cart: [], discountPct: 0, history: [] };
-try {
-  const saved = JSON.parse(localStorage.getItem(STATE_KEY) || '{}');
-  const savedHist = JSON.parse(localStorage.getItem(HIST_KEY) || '[]');
-  if (Array.isArray(savedHist)) state.history = savedHist;
-  if (saved && Array.isArray(saved.cart)) { state.cart = saved.cart; state.discountPct = saved.discountPct || 0; }
-} catch {}
+    // ---------- State ----------
+    const STATE_KEY = 'pizza_calc_state_v4';
+    const HIST_KEY  = 'pizza_order_history_v4';
+    const state = { cart: [], discountPct: 0, history: [] };
+    try {
+      const saved = JSON.parse(localStorage.getItem(STATE_KEY) || '{}');
+      const savedHist = JSON.parse(localStorage.getItem(HIST_KEY) || '[]');
+      if (Array.isArray(savedHist)) state.history = savedHist;
+      if (saved && Array.isArray(saved.cart)) { state.cart = saved.cart; state.discountPct = saved.discountPct || 0; }
+    } catch {}
+    const persist = () => localStorage.setItem(STATE_KEY, JSON.stringify({ cart: state.cart, discountPct: state.discountPct }));
+    const persistHistory = () => localStorage.setItem(HIST_KEY, JSON.stringify(state.history));
 
-const persist = () => localStorage.setItem(STATE_KEY, JSON.stringify({ cart: state.cart, discountPct: state.discountPct }));
-const persistHistory = () => localStorage.setItem(HIST_KEY, JSON.stringify(state.history));
+    // ---------- Render Helpers ----------
+    function cardHTML(item){
+      return `
+        <article class="card">
+          <h3>${item.name}</h3>
+          <div class="toolrow" style="justify-content:space-between;">
+            <span class="price">${currency(item.price)}</span>
+            <div class="qty">
+              <button aria-label="decrease">−</button>
+              <output>1</output>
+              <button aria-label="increase">+</button>
+            </div>
+          </div>
+          <button class="btn" data-add="${item.id}">Add</button>
+        </article>`;
+    }
+    function renderCards(){
+      const classic = document.getElementById('classic');
+      const specialty = document.getElementById('specialty');
+      const deals = document.getElementById('deals');
+      const bundles = document.getElementById('bundles');
+      const extras = document.getElementById('extras');
 
-/* ---------- Menu Cards ---------- */
-function cardHTML(item){
-  return `
-    <article class="card">
-      <h3>${item.name}</h3>
-      <div class="toolrow" style="justify-content:space-between;">
-        <span class="price">${currency(item.price)}</span>
-        <div class="qty">
-          <button aria-label="decrease">−</button>
-          <output>1</output>
-          <button aria-label="increase">+</button>
-        </div>
-      </div>
-      <button class="btn" data-add="${item.id}">Add</button>
-    </article>`;
-}
-function renderCards(){
-  const classic = document.getElementById('classic');
-  const specialty = document.getElementById('specialty');
-  const deals = document.getElementById('deals');
-  const extras = document.getElementById('extras');
+      const make = arr => arr.map(cardHTML).join('');
+      classic.innerHTML = make(MENU.classic);
+      specialty.innerHTML = make(MENU.specialty);
+      deals.innerHTML = make(MENU.deals);
+      bundles.innerHTML = make(MENU.bundles);
+      extras.innerHTML = make(MENU.extras);
 
-  const make = arr => arr.map(cardHTML).join('');
-  classic.innerHTML = make(MENU.classic);
-  specialty.innerHTML = make(MENU.specialty);
-  deals.innerHTML = make(MENU.deals);
-  extras.innerHTML = make(MENU.extras);
+      const allItems = [...MENU.classic, ...MENU.specialty, ...MENU.deals, ...MENU.bundles, ...MENU.extras];
+      document.querySelectorAll('.cards .card').forEach(card=>{
+        let count = 1;
+        const out = card.querySelector('output');
+        const minus = card.querySelector('button[aria-label="decrease"]');
+        const plus  = card.querySelector('button[aria-label="increase"]');
+        minus.addEventListener('click',()=>{ count=Math.max(1,count-1); out.value=count; });
+        plus.addEventListener('click',()=>{ count++; out.value=count; });
+        card.querySelector('[data-add]').addEventListener('click',()=>{
+          const id = card.querySelector('[data-add]').getAttribute('data-add');
+          const item = allItems.find(i=>i.id===id);
+          addToCart({ name:item.name, unitPrice:item.price, qty:count, type:item.type });
+        });
+      });
+    }
 
-  // Attach qty + add
-  document.querySelectorAll('.cards .card').forEach(card=>{
-    let count = 1;
-    const out = card.querySelector('output');
-    const minus = card.querySelector('button[aria-label="decrease"]');
-    const plus  = card.querySelector('button[aria-label="increase"]');
-    minus.addEventListener('click',()=>{ count=Math.max(1,count-1); out.value=count; });
-    plus.addEventListener('click',()=>{ count++; out.value=count; });
+    function renderCart(){
+      const cart = document.getElementById('cart');
+      if (!state.cart.length){
+        cart.innerHTML = `<div class="cart-item muted">Your order is empty. Add a pizza or extra to get started.</div>`;
+        return;
+      }
+      cart.innerHTML = state.cart.map((l,idx)=>`
+        <div class="cart-item">
+          <div>
+            <div><strong>${l.name}</strong></div>
+            <div class="small">${currency(l.unitPrice)} each</div>
+          </div>
+          <div class="qty">
+            <button data-dec="${idx}">−</button>
+            <output>${l.qty}</output>
+            <button data-inc="${idx}">+</button>
+          </div>
+            <div><strong>${currency(l.unitPrice*l.qty)}</strong></div>
+        </div>`).join('');
 
-    card.querySelector('[data-add]').addEventListener('click',()=>{
-      const id = card.querySelector('[data-add]').getAttribute('data-add');
-      const item = [...MENU.classic, ...MENU.specialty, ...MENU.deals, ...MENU.extras].find(i=>i.id===id);
-      addToCart({ name:item.name, unitPrice:item.price, qty:count });
-    });
-  });
-}
+      cart.querySelectorAll('[data-inc]').forEach(b=>b.addEventListener('click',()=>{ const i=+b.getAttribute('data-inc'); state.cart[i].qty++; persist(); renderCart(); renderTotals(); }));
+      cart.querySelectorAll('[data-dec]').forEach(b=>b.addEventListener('click',()=>{ const i=+b.getAttribute('data-dec'); state.cart[i].qty--; if(state.cart[i].qty<=0) state.cart.splice(i,1); persist(); renderCart(); renderTotals(); }));
+    }
 
-/* ---------- Cart / Totals ---------- */
-function addToCart(line){
-  const key = `${line.name}|${line.unitPrice}`;
-  const found = state.cart.find(l => `${l.name}|${l.unitPrice}` === key);
-  if (found) found.qty += line.qty; else state.cart.push(line);
-  persist(); renderCart(); renderTotals();
-}
-function renderCart(){
-  const cart = document.getElementById('cart');
-  if (!state.cart.length){
-    cart.innerHTML = `<div class="cart-item muted">Your order is empty. Add a pizza or extra to get started.</div>`;
-    return;
-  }
-  cart.innerHTML = state.cart.map((l,idx)=>`
-    <div class="cart-item">
-      <div>
-        <div><strong>${l.name}</strong></div>
-        <div class="small">${currency(l.unitPrice)} each</div>
-      </div>
-      <div class="qty">
-        <button data-dec="${idx}">−</button>
-        <output>${l.qty}</output>
-        <button data-inc="${idx}">+</button>
-      </div>
-      <div><strong>${currency(l.unitPrice*l.qty)}</strong></div>
-    </div>`).join('');
+    function addToCart(line){
+      const key = `${line.name}|${line.unitPrice}|${line.type||''}`;
+      const found = state.cart.find(l => `${l.name}|${l.unitPrice}|${l.type||''}` === key);
+      if (found) found.qty += line.qty; else state.cart.push(line);
+      persist(); renderCart(); renderTotals();
+    }
 
-  cart.querySelectorAll('[data-inc]').forEach(b=>b.addEventListener('click',()=>{
-    const i = +b.getAttribute('data-inc'); state.cart[i].qty++; persist(); renderCart(); renderTotals();
-  }));
-  cart.querySelectorAll('[data-dec]').forEach(b=>b.addEventListener('click',()=>{
-    const i = +b.getAttribute('data-dec'); state.cart[i].qty--; if(state.cart[i].qty<=0) state.cart.splice(i,1); persist(); renderCart(); renderTotals();
-  }));
-}
-function renderTotals(){
-  const subtotal = state.cart.reduce((s,l)=>s + l.unitPrice*l.qty, 0);
-  const discount = +(subtotal * (state.discountPct/100)).toFixed(2);
-  const total = subtotal - discount;
-  document.getElementById('subtotal').textContent = currency(subtotal);
-  document.getElementById('discount').textContent = `-${currency(discount)}`;
-  document.getElementById('total').textContent = currency(total);
-}
+    // ---------- Promotions ----------
+    function computePromotions(){
+      const day = new Date().getDay(); // 0 Sun .. 6 Sat
+      let notes = [];
+      let discount = 0;
 
-/* ---------- Discount ---------- */
-const range = document.getElementById('discountRange');
-const discountLabel = document.getElementById('discountLabel');
-function renderDiscount(){
-  range.value = state.discountPct;
-  discountLabel.textContent = `${state.discountPct}%`;
-}
-range.addEventListener('input', ()=>{
-  state.discountPct = +range.value; persist(); renderTotals();
-  discountLabel.textContent = `${state.discountPct}%`;
-});
+      // 1) Mon–Wed: Buy one pizza, get one half off (applies to pizzas incl. custom)
+      if (day>=1 && day<=3){
+        // expand pizza prices by unit
+        const unitPrices = [];
+        state.cart.forEach(l=>{
+          if (l.type === 'pizza' || l.name === 'Custom Pizza'){
+            for(let i=0;i<l.qty;i++) unitPrices.push(l.unitPrice);
+          }
+        });
+        if (unitPrices.length >= 2){
+          unitPrices.sort((a,b)=>b-a); // high -> low
+          for (let i=0;i<unitPrices.length; i+=2){
+            const p1 = unitPrices[i];
+            const p2 = unitPrices[i+1];
+            if (typeof p2 === 'number') discount += p2 * 0.5; // cheaper half off
+          }
+          if (discount>0) notes.push('Mon–Wed BOGO 50% on pizzas applied');
+        }
+      }
 
-/* ---------- History ---------- */
-function renderHistory(){
-  const list = document.getElementById('historyList');
-  if (!state.history.length){
-    list.innerHTML = `<div class="muted">No past orders yet. Checkout to save one.</div>`;
-    return;
-  }
-  list.innerHTML = state.history.map(h=>`
-    <article class="card">
-      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
+      // 2) Thu–Sat: Free breadsticks with any Get Stuffed deal (max 4 free per order)
+      if (day>=4 && day<=6){
+        const hasDealQty = state.cart.reduce((s,l)=> s + ((l.type==='deal')?l.qty:0), 0);
+        if (hasDealQty>0){
+          const bread = state.cart.find(l=>l.id==='ex-bread' || /breadsticks/i.test(l.name));
+          if (bread){
+            const freeQty = Math.min(4, bread.qty);
+            if (freeQty>0){
+              discount += freeQty * bread.unitPrice;
+              notes.push(`Thu–Sat free breadsticks (${freeQty}) with Get Stuffed`);
+            }
+          }
+        }
+      }
+
+      return { discount: +(discount.toFixed(2)), notes };
+    }
+
+    // ---------- Totals ----------
+    function renderTotals(){
+      const subtotal = state.cart.reduce((s,l)=>s + l.unitPrice*l.qty, 0);
+      const manual = +(subtotal * (state.discountPct/100)).toFixed(2);
+      const promo = computePromotions();
+      const total = subtotal - manual - promo.discount;
+      document.getElementById('subtotal').textContent = currency(subtotal);
+      document.getElementById('discount').textContent = `-${currency(manual)}`;
+      document.getElementById('promotions').textContent = `-${currency(promo.discount)}`;
+      document.getElementById('total').textContent = currency(total);
+      document.getElementById('promoNotes').textContent = promo.notes.join(' • ');
+    }
+
+    // ---------- Discount slider ----------
+    const range = document.getElementById('discountRange');
+    const discountLabel = document.getElementById('discountLabel');
+    function renderDiscount(){ range.value = state.discountPct; discountLabel.textContent = `${state.discountPct}%`; }
+    range.addEventListener('input', ()=>{ state.discountPct = +range.value; persist(); renderTotals(); discountLabel.textContent = `${state.discountPct}%`; });
+
+    // ---------- History ----------
+    function renderHistory(){
+      const list = document.getElementById('historyList');
+      if (!state.history.length){ list.innerHTML = '<div class="muted">No past orders yet. Checkout to save one.</div>'; return; }
+      list.innerHTML = state.history.map(h=>`
+        <article class="card">
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
+            <div>
+              <div><strong>${new Date(h.id).toLocaleString()}</strong></div>
+              <div class="small">${h.items.length} item(s) • Discount ${h.discountPct}%</div>
+            </div>
+            <div><strong>${currency(h.total)}</strong></div>
+          </div>
+          <details class="small" style="margin-top:6px;">
+            <summary>View items</summary>
+            <ul style="margin:6px 0 0 16px;">
+              ${h.items.map(i=>`<li>${i.qty}× ${i.name}${i.meta?` <span class=small>(${i.meta})</span>`:''} — ${currency(i.lineTotal)}</li>`).join('')}
+            </ul>
+          </details>
+          <div class="toolrow" style="justify-content:flex-end;">
+            <button class="btn" data-reorder="${h.id}">Reorder</button>
+            <button class="btn ghost" data-delete="${h.id}">Delete</button>
+          </div>
+        </article>
+      `).join('');
+
+      list.querySelectorAll('[data-reorder]').forEach(btn=>btn.addEventListener('click',()=>{
+        const id = +btn.getAttribute('data-reorder');
+        const h = state.history.find(x=>x.id===id); if(!h) return;
+        h.items.forEach(it => addToCart({ name: it.name, unitPrice: it.unit, qty: it.qty, meta: it.meta || null }));
+      }));
+      list.querySelectorAll('[data-delete]').forEach(btn=>btn.addEventListener('click',()=>{
+        const id = +btn.getAttribute('data-delete');
+        state.history = state.history.filter(x=>x.id!==id); persistHistory(); renderHistory();
+      }));
+    }
+    document.getElementById('clearHistoryBtn').addEventListener('click',()=>{ if(confirm('Clear all saved orders?')){ state.history=[]; persistHistory(); renderHistory(); } });
+
+    // ---------- Tabs ----------
+    const tabButtons = document.querySelectorAll('[data-tab]');
+    function selectTab(which){
+      document.getElementById('tab-summary').hidden = which!== 'summary';
+      document.getElementById('tab-history').hidden = which!== 'history';
+      tabButtons.forEach(b=>b.setAttribute('aria-selected', String(b.getAttribute('data-tab')===which)));
+    }
+    tabButtons.forEach(b=>b.addEventListener('click',()=>selectTab(b.getAttribute('data-tab'))));
+
+    // ---------- Build Pizza Modal ----------
+    const modal = document.getElementById('pizzaModal');
+    const sizeWrap = document.getElementById('sizeOptions');
+    const crustWrap = document.getElementById('crustOptions');
+    const toppingWrap = document.getElementById('toppingOptions');
+    const livePrice = document.getElementById('livePrice');
+    const qtyOutput = document.getElementById('qtyOutput');
+
+    const buildState = { size: MENU.builder.sizes[2], crust: MENU.builder.crusts[0], toppings: new Set(), qty: 1 };
+
+    function renderBuilder(){
+      sizeWrap.innerHTML = MENU.builder.sizes.map(s=>`
+        <label class="option"><span>${s.name}</span>
+          <span>${currency(s.price)} <input type="radio" name="size" value="${s.id}" ${s.id===buildState.size.id?'checked':''}></span>
+        </label>`).join('');
+      crustWrap.innerHTML = MENU.builder.crusts.map(c=>`
+        <label class="option"><span>${c.name}</span>
+          <span>${c.price?`+${currency(c.price)}`:'Included'} <input type="radio" name="crust" value="${c.id}" ${c.id===buildState.crust.id?'checked':''}></span>
+        </label>`).join('');
+
+      const groups = MENU.builder.toppings.reduce((acc,t)=>{ (acc[t.cat] ||= []).push(t); return acc; }, {});
+      toppingWrap.innerHTML = Object.entries(groups).map(([cat,items])=>`
         <div>
-          <div><strong>${new Date(h.id).toLocaleString()}</strong></div>
-          <div class="small">${h.items.length} item(s) • Discount ${h.discountPct}%</div>
-        </div>
-        <div><strong>${currency(h.total)}</strong></div>
-      </div>
-      <details class="small" style="margin-top:6px">
-        <summary>View items</summary>
-        <ul style="margin:6px 0 0 16px;">
-          ${h.items.map(i=>`<li>${i.qty}× ${i.name}${i.meta?` <span class="small">(${i.meta})</span>`:''} — ${currency(i.lineTotal)}</li>`).join('')}
-        </ul>
-      </details>
-      <div class="toolrow" style="justify-content:flex-end">
-        <button class="btn" data-reorder="${h.id}">Reorder</button>
-        <button class="btn ghost" data-delete="${h.id}">Delete</button>
-      </div>
-    </article>
-  `).join('');
+          <h5 style="margin:6px 0">${cat}</h5>
+          ${items.map(t=>`
+            <label class="option"><span>${t.name}</span>
+              <span>${currency(t.price)} <input type="checkbox" value="${t.name}" ${buildState.toppings.has(t.name)?'checked':''}></span>
+            </label>`).join('')}
+        </div>`).join('');
 
-  list.querySelectorAll('[data-reorder]').forEach(btn=>btn.addEventListener('click',()=>{
-    const id = +btn.getAttribute('data-reorder');
-    const h = state.history.find(x=>x.id===id); if(!h) return;
-    h.items.forEach(it => addToCart({ name: it.name, unitPrice: it.unit, qty: it.qty, meta: it.meta || null }));
-    // switch to summary
-    selectTab('summary');
-  }));
-  list.querySelectorAll('[data-delete]').forEach(btn=>btn.addEventListener('click',()=>{
-    const id = +btn.getAttribute('data-delete');
-    state.history = state.history.filter(x=>x.id!==id); persistHistory(); renderHistory();
-  }));
-}
-document.getElementById('clearHistoryBtn').addEventListener('click',()=>{
-  if(confirm('Clear all saved orders?')){ state.history = []; persistHistory(); renderHistory(); }
-});
+      sizeWrap.querySelectorAll('input[name="size"]').forEach(r=>r.addEventListener('change',e=>{ buildState.size = MENU.builder.sizes.find(s=>s.id===e.target.value); updateLivePrice(); }));
+      crustWrap.querySelectorAll('input[name="crust"]').forEach(r=>r.addEventListener('change',e=>{ buildState.crust = MENU.builder.crusts.find(c=>c.id===e.target.value); updateLivePrice(); }));
+      toppingWrap.querySelectorAll('input[type="checkbox"]').forEach(c=>c.addEventListener('change',e=>{ const v=e.target.value; if(e.target.checked) buildState.toppings.add(v); else buildState.toppings.delete(v); updateLivePrice(); }));
+    }
 
-/* ---------- Tabs ---------- */
-const tabButtons = document.querySelectorAll('[data-tab]');
-function selectTab(which){
-  document.getElementById('tab-summary').hidden = which!=='summary';
-  document.getElementById('tab-history').hidden = which!=='history';
-  tabButtons.forEach(b=>b.setAttribute('aria-selected', String(b.getAttribute('data-tab')===which)));
-}
-tabButtons.forEach(b=>b.addEventListener('click',()=>selectTab(b.getAttribute('data-tab'))));
+    function calcPizzaPrice(){
+      const base = buildState.size.price + buildState.crust.price;
+      const tops = [...buildState.toppings].reduce((s,name)=>{
+        const t = MENU.builder.toppings.find(x=>x.name===name); return s + (t?t.price:0);
+      },0);
+      return +(base + tops).toFixed(2);
+    }
+    function updateLivePrice(){ livePrice.textContent = currency(calcPizzaPrice() * buildState.qty); }
 
-/* ---------- Build Pizza Modal ---------- */
-const modal = document.getElementById('pizzaModal');
-const sizeWrap = document.getElementById('sizeOptions');
-const crustWrap = document.getElementById('crustOptions');
-const toppingWrap = document.getElementById('toppingOptions');
-const livePrice = document.getElementById('livePrice');
-const qtyOutput = document.getElementById('qtyOutput');
+    document.getElementById('qtyMinus').addEventListener('click',()=>{ buildState.qty=Math.max(1,buildState.qty-1); qtyOutput.value=buildState.qty; updateLivePrice(); });
+    document.getElementById('qtyPlus').addEventListener('click',()=>{ buildState.qty++; qtyOutput.value=buildState.qty; updateLivePrice(); });
+    document.getElementById('buildPizzaBtn').addEventListener('click',()=>{ renderBuilder(); updateLivePrice(); modal.showModal(); });
+    document.getElementById('closeModal').addEventListener('click',()=> modal.close());
+    document.getElementById('addPizzaBtn').addEventListener('click',()=>{
+      const unit = calcPizzaPrice();
+      const meta = `${buildState.size.name}, ${buildState.crust.name}${buildState.toppings.size?`, ${[...buildState.toppings].join(', ')}`:''}`;
+      addToCart({ name:'Custom Pizza', unitPrice:unit, qty:buildState.qty, meta, type:'pizza' });
+      buildState.qty = 1; qtyOutput.value = 1; updateLivePrice(); modal.close();
+    });
 
-const buildState = { size: MENU.builder.sizes[2], crust: MENU.builder.crusts[0], toppings: new Set(), qty: 1 };
+    // ---------- Discount & Tabs ----------
+    function renderAll(){ renderCards(); renderCart(); renderTotals(); renderDiscount(); renderHistory(); }
 
-function renderBuilder(){
-  sizeWrap.innerHTML = MENU.builder.sizes.map(s=>`
-    <label class="option"><span>${s.name}</span>
-      <span>${currency(s.price)} <input type="radio" name="size" value="${s.id}" ${s.id===buildState.size.id?'checked':''}></span>
-    </label>`).join('');
-  crustWrap.innerHTML = MENU.builder.crusts.map(c=>`
-    <label class="option"><span>${c.name}</span>
-      <span>${c.price?`+${currency(c.price)}`:'Included'} <input type="radio" name="crust" value="${c.id}" ${c.id===buildState.crust.id?'checked':''}></span>
-    </label>`).join('');
+    // ---------- Checkout / Reset ----------
+    function checkout(){
+      if (!state.cart.length){ alert('Your order is empty.'); return; }
+      const subtotal = state.cart.reduce((s,l)=>s + l.unitPrice*l.qty, 0);
+      const manual = +(subtotal * (state.discountPct/100)).toFixed(2);
+      const promo = computePromotions();
+      const total = +(subtotal - manual - promo.discount).toFixed(2);
+      const entry = {
+        id: Date.now(),
+        items: state.cart.map(l=>({ name:l.name, qty:l.qty, unit:l.unitPrice, meta:l.meta||null, lineTotal:+(l.unitPrice*l.qty).toFixed(2) })),
+        discountPct: state.discountPct,
+        subtotal:+subtotal.toFixed(2),
+        discount: manual + promo.discount,
+        total
+      };
+      state.history.unshift(entry); persistHistory();
+      state.cart = []; state.discountPct = 0; persist();
+      renderAll(); selectTab('history');
+    }
+    function resetAll(){ state.cart = []; state.discountPct = 0; persist(); renderAll(); }
 
-  const groups = MENU.builder.toppings.reduce((acc,t)=>{(acc[t.cat] ||= []).push(t); return acc;}, {});
-  toppingWrap.innerHTML = Object.entries(groups).map(([cat,items])=>`
-    <div>
-      <h5 style="margin:6px 0">${cat}</h5>
-      ${items.map(t=>`
-        <label class="option"><span>${t.name}</span>
-          <span>${currency(t.price)} <input type="checkbox" value="${t.name}" ${buildState.toppings.has(t.name)?'checked':''}></span>
-        </label>`).join('')}
-    </div>`).join('');
+    document.getElementById('checkoutBtn').addEventListener('click', checkout);
+    document.getElementById('checkoutBtn2').addEventListener('click', checkout);
+    document.getElementById('resetBtn').addEventListener('click', resetAll);
+    document.getElementById('resetBtn2').addEventListener('click', resetAll);
 
-  sizeWrap.querySelectorAll('input[name="size"]').forEach(r=>r.addEventListener('change',e=>{
-    buildState.size = MENU.builder.sizes.find(s=>s.id===e.target.value); updateLivePrice();
-  }));
-  crustWrap.querySelectorAll('input[name="crust"]').forEach(r=>r.addEventListener('change',e=>{
-    buildState.crust = MENU.builder.crusts.find(c=>c.id===e.target.value); updateLivePrice();
-  }));
-  toppingWrap.querySelectorAll('input[type="checkbox"]').forEach(c=>c.addEventListener('change',e=>{
-    const v = e.target.value; if(e.target.checked) buildState.toppings.add(v); else buildState.toppings.delete(v); updateLivePrice();
-  }));
-}
-function calcPizzaPrice(){
-  const base = buildState.size.price + buildState.crust.price;
-  const tops = [...buildState.toppings].reduce((s,name)=>{
-    const t = MENU.builder.toppings.find(x=>x.name===name); return s + (t?t.price:0);
-  },0);
-  return +(base + tops).toFixed(2);
-}
-function updateLivePrice(){ livePrice.textContent = currency(calcPizzaPrice() * buildState.qty); }
-document.getElementById('qtyMinus').addEventListener('click',()=>{ buildState.qty=Math.max(1,buildState.qty-1); qtyOutput.value=buildState.qty; updateLivePrice(); });
-document.getElementById('qtyPlus').addEventListener('click',()=>{ buildState.qty++; qtyOutput.value=buildState.qty; updateLivePrice(); });
-document.getElementById('buildPizzaBtn').addEventListener('click',()=>{ renderBuilder(); updateLivePrice(); modal.showModal(); });
-document.getElementById('closeModal').addEventListener('click',()=> modal.close());
-document.getElementById('addPizzaBtn').addEventListener('click',()=>{
-  const unit = calcPizzaPrice();
-  const meta = `${buildState.size.name}, ${buildState.crust.name}${buildState.toppings.size?`, ${[...buildState.toppings].join(', ')}`:''}`;
-  addToCart({ name:'Custom Pizza', unitPrice:unit, qty:buildState.qty, meta });
-  buildState.qty = 1; qtyOutput.value = 1; updateLivePrice(); modal.close();
-});
+    // ---------- Theme ----------
+    const themeBtn = document.getElementById('themeBtn');
+    function applyTheme(t){
+      document.documentElement.setAttribute('data-theme', t);
+      localStorage.setItem('pizza_theme', t);
+      themeBtn.textContent = t==='dark' ? '☀️ Light' : '🌙 Dark';
+      themeBtn.setAttribute('aria-pressed', t==='dark');
+    }
+    applyTheme(localStorage.getItem('pizza_theme') || 'light');
+    themeBtn.addEventListener('click',()=>{ const next = (localStorage.getItem('pizza_theme')||'light')==='light' ? 'dark' : 'light'; applyTheme(next); });
 
-/* ---------- Checkout / Reset ---------- */
-function checkout(){
-  if (!state.cart.length){ alert('Your order is empty.'); return; }
-  const subtotal = state.cart.reduce((s,l)=>s + l.unitPrice*l.qty, 0);
-  const discount = +(subtotal * (state.discountPct/100)).toFixed(2);
-  const total = +(subtotal - discount).toFixed(2);
-  const entry = {
-    id: Date.now(),
-    items: state.cart.map(l=>({ name:l.name, qty:l.qty, unit:l.unitPrice, meta:l.meta||null, lineTotal:+(l.unitPrice*l.qty).toFixed(2) })),
-    discountPct: state.discountPct,
-    subtotal:+subtotal.toFixed(2), discount, total
-  };
-  state.history.unshift(entry); persistHistory();
-  // clear cart + discount
-  state.cart = []; state.discountPct = 0; persist();
-  renderCart(); renderDiscount(); renderTotals(); renderHistory();
-  selectTab('history');
-}
-function resetAll(){ state.cart = []; state.discountPct = 0; persist(); renderCart(); renderDiscount(); renderTotals(); }
-document.getElementById('checkoutBtn').addEventListener('click', checkout);
-document.getElementById('checkoutBtn2').addEventListener('click', checkout);
-document.getElementById('resetBtn').addEventListener('click', resetAll);
-document.getElementById('resetBtn2').addEventListener('click', resetAll);
-
-/* ---------- Theme ---------- */
-const themeBtn = document.getElementById('themeBtn');
-function applyTheme(t){
-  document.documentElement.setAttribute('data-theme', t);
-  localStorage.setItem('pizza_theme', t);
-  themeBtn.textContent = t==='dark' ? '☀️ Light' : '🌙 Dark';
-  themeBtn.setAttribute('aria-pressed', t==='dark');
-}
-applyTheme(localStorage.getItem('pizza_theme') || 'light');
-themeBtn.addEventListener('click',()=>{
-  const next = (localStorage.getItem('pizza_theme')||'light')==='light' ? 'dark' : 'light';
-  applyTheme(next);
-});
-
-/* ---------- Init ---------- */
-function renderAll(){ renderCart(); renderTotals(); renderDiscount(); renderHistory(); }
-renderCards();
-renderAll();
-
-/* ---------- END ---------- */
-</script>
+    // ---------- Init ----------
+    renderAll();
+  </script>
 </body>
 </html>
