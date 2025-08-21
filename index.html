@@ -1,176 +1,598 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Pizza This — Order Calculator</title>
-  <style>
-    :root {
-      /* Italian theme */
-      --red: #d32f2f;
-      --green: #2e7d32;
-      --white: #ffffff;
-      --dark-bg: #121212;
-      --dark-panel: #1e1e1e;
-      --dark-text: #f5f5f5;
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Pizza This — Order Calculator</title>
+<style>
+  :root{
+    --bg:#0f1220;       /* dark navy */
+    --panel:#151a30;    /* panel bg */
+    --card:#1a2140;     /* card bg */
+    --ink:#e9ecf7;      /* text */
+    --muted:#9aa3c0;    /* sub text */
+    --line:#2a3156;     /* borders */
+    --chip:#202854;     /* chips/inputs */
+    --green:#2e7d32;
+    --green-2:#1ea97a;
+    --red:#d32f2f;
+    --accent:#f6c14b;   /* gold accent */
+    --radius:14px;
+    --shadow:0 10px 28px rgba(0,0,0,.35);
+  }
 
-      --box-radius: 12px;
-      --shadow: 0 6px 18px rgba(0,0,0,0.25);
-    }
+  *{box-sizing:border-box}
+  html,body{margin:0;background:var(--bg);color:var(--ink);font-family:ui-sans-serif,system-ui,Segoe UI,Roboto,Helvetica,Arial}
+  h1,h2,h3{margin:0 0 .5rem 0}
+  a{color:inherit}
 
-    body {
-      margin: 0;
-      font-family: "Segoe UI", sans-serif;
-      background: var(--white);
-      color: #222;
-      transition: background 0.3s, color 0.3s;
-    }
+  /* Top bar */
+  .top{
+    position:sticky; top:0; z-index:3;
+    background:#0d1020cc; backdrop-filter:saturate(130%) blur(6px);
+    border-bottom:1px solid var(--line);
+  }
+  .top .row{
+    max-width:1200px; margin:0 auto; padding:12px 16px;
+    display:flex; align-items:center; justify-content:space-between; gap:12px;
+  }
+  .brand{display:flex; align-items:center; gap:10px}
+  .logo{width:36px;height:36px;border-radius:10px;box-shadow:var(--shadow);position:relative;overflow:hidden}
+  .logo::before{content:"";position:absolute;inset:0;
+    background:linear-gradient(90deg,#2e7d32 0 33%,#fff 33% 66%,#d32f2f 66% 100%)}
+  .logo::after{content:"🍕";position:absolute;inset:0;display:grid;place-items:center;font-size:18px}
 
-    body.dark {
-      background: var(--dark-bg);
-      color: var(--dark-text);
-    }
+  .chip{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:var(--chip);
+    color:var(--ink);padding:8px 10px;border-radius:999px;font-weight:700;font-size:.85rem}
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:1px solid var(--line);
+    background:var(--chip);color:var(--ink);padding:10px 14px;border-radius:10px;cursor:pointer;font-weight:700}
+  .btn:active{transform:translateY(1px)}
+  .btn.ghost{background:transparent}
+  .btn.primary{border:none;background:linear-gradient(90deg,#2e7d32,#d32f2f);color:#fff}
+  .btn.small{padding:6px 10px;border-radius:8px}
 
-    header {
-      background: linear-gradient(to right, var(--green), var(--white), var(--red));
-      padding: 1rem;
-      text-align: center;
-      font-size: 1.5rem;
-      font-weight: bold;
-    }
+  /* Italian flag progress bar */
+  .flagbar{height:8px}
+  .flagbar>div{display:flex;height:100%}
+  .flagbar span{flex:1}
+  .flagbar .g{background:#2e7d32}
+  .flagbar .w{background:#fff}
+  .flagbar .r{background:#d32f2f}
 
-    .container {
-      display: flex;
-      gap: 1rem;
-      padding: 1rem;
-    }
+  /* Layout */
+  .wrap{max-width:1200px;margin:16px auto;padding:0 16px}
+  .grid{display:grid;grid-template-columns:1.15fr .85fr;gap:16px}
+  @media (max-width:980px){ .grid{grid-template-columns:1fr} }
 
-    .menu, .summary {
-      flex: 1;
-      background: #fafafa;
-      border-radius: var(--box-radius);
-      padding: 1rem;
-      box-shadow: var(--shadow);
-    }
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow)}
+  .panel h2{padding:14px 16px;border-bottom:1px solid var(--line);font-size:1rem}
+  .panel .content{padding:14px 16px}
 
-    body.dark .menu, 
-    body.dark .summary {
-      background: var(--dark-panel);
-    }
+  /* Cards grid */
+  .section{margin-bottom:14px}
+  .cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px;box-shadow:var(--shadow)}
+  .card h3{font-size:1rem;margin:0 0 8px 0}
+  .price{color:#2bd277;font-weight:800}
+  .muted{color:var(--muted)}
+  .qty{display:grid;grid-template-columns:36px 1fr 36px;align-items:center;gap:8px}
+  .qty button{height:36px;border-radius:10px;border:1px solid var(--line);background:var(--chip);color:var(--ink);font-size:18px;cursor:pointer}
+  .qty output{text-align:center}
 
-    h2 {
-      margin-top: 0.5rem;
-      margin-bottom: 0.5rem;
-    }
+  .addrow{display:flex;justify-content:space-between;align-items:center;gap:12px}
+  .addrow .btn{min-width:110px}
 
-    .item-box {
-      border: 1px solid #ccc;
-      border-radius: var(--box-radius);
-      padding: 0.5rem;
-      margin: 0.5rem 0;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      background: #fff;
-      transition: background 0.3s, border 0.3s;
-    }
+  /* Order Summary */
+  .order-list .line{display:grid;grid-template-columns:1fr auto auto;align-items:center;gap:10px;
+    padding:10px;border-bottom:1px dashed var(--line)}
+  .order-list .line:last-child{border-bottom:none}
+  .order-card{background:var(--card);border:1px solid var(--line);border-radius:12px;margin-bottom:10px}
+  .order-card .line{border-bottom:none}
 
-    body.dark .item-box {
-      background: #1e1e1e;
-      border: 1px solid #333;
-    }
+  .summary{display:flex;flex-direction:column;gap:12px;margin-top:6px}
+  .summary .row{display:flex;justify-content:space-between;align-items:center}
+  .summary .row.total{font-size:1.25rem;font-weight:900}
 
-    .item-box button {
-      background: var(--green);
-      color: white;
-      border: none;
-      border-radius: 6px;
-      padding: 0.3rem 0.6rem;
-      cursor: pointer;
-    }
+  .discount{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center;margin:10px 0}
+  .discount input[type=range]{width:100%}
+  .pct{border:1px solid #ff4d4d;color:#ff4d4d;background:transparent;font-weight:800;border-radius:8px;padding:4px 8px}
 
-    .item-box button:hover {
-      background: var(--red);
-    }
+  .tabs{display:flex;gap:8px;margin-bottom:10px}
+  .tabs .btn[aria-selected="true"]{outline:2px solid var(--accent)}
 
-    .summary h3 {
-      border-bottom: 2px solid var(--red);
-      padding-bottom: 0.5rem;
-    }
+  details summary{cursor:pointer}
+  .toolrow{display:flex;gap:8px;justify-content:flex-end}
 
-    .toggle-mode {
-      position: absolute;
-      top: 10px;
-      right: 10px;
-      background: var(--red);
-      color: white;
-      border: none;
-      border-radius: 8px;
-      padding: 0.4rem 0.8rem;
-      cursor: pointer;
-    }
-
-    .checkout {
-      margin-top: 1rem;
-      background: linear-gradient(to right, var(--green), var(--red));
-      border: none;
-      padding: 0.8rem;
-      width: 100%;
-      color: white;
-      font-weight: bold;
-      font-size: 1rem;
-      border-radius: var(--box-radius);
-      cursor: pointer;
-    }
-
-  </style>
+  /* Pretty checkout bar */
+  .checkout{width:100%;padding:12px;border-radius:10px;border:none;cursor:pointer;
+    background:linear-gradient(90deg,#2e7d32 0%,#f6c14b 50%,#d32f2f 100%);color:#fff;font-weight:900}
+  .clear{width:100%;padding:10px;border-radius:10px;border:1px solid var(--line);background:transparent;color:var(--ink);cursor:pointer}
+</style>
 </head>
 <body>
-  <header>🍕 Pizza This — Order Calculator</header>
-  <button class="toggle-mode" onclick="toggleMode()">Toggle Dark Mode</button>
+  <div class="top">
+    <div class="row">
+      <div class="brand">
+        <div class="logo" aria-hidden="true"></div>
+        <div>
+          <div style="font-size:1.2rem;font-weight:900">Pizza This — Order Calculator</div>
+          <div class="muted" style="font-size:.9rem">Build pizzas, add deals & sides, apply discounts, and get an exact total.</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <span class="chip">Autosaves</span>
+        <button id="themeBtn" class="btn small">☀️ Light</button>
+        <button id="clearBtnA" class="btn small ghost">Clear All</button>
+        <button id="checkoutBtnA" class="btn small primary">Checkout</button>
+      </div>
+    </div>
+    <div class="flagbar"><div><span class="g"></span><span class="w"></span><span class="r"></span></div></div>
+  </div>
 
-  <div class="container">
-    <!-- Menu -->
-    <div class="menu">
-      <h2>Menu</h2>
+  <div class="wrap">
+    <div class="grid">
+      <!-- LEFT: MENU -->
+      <section class="panel">
+        <h2>Menu</h2>
+        <div class="content">
+          <div class="section">
+            <h3>Build Your Pizza</h3>
+            <div class="muted" style="margin:6px 0 10px">Choose size, crust, and toppings. Price updates live.</div>
+            <button id="builderBtn" class="btn">Customize + Add</button>
+          </div>
 
-      <h3>Classic Pizzas</h3>
-      <div class="item-box">
-        🍅 Margherita — $200
-        <button onclick="addToOrder('Margherita',200)">Add</button>
-      </div>
-      <div class="item-box">
-        🍕 Pepperoni — $200
-        <button onclick="addToOrder('Pepperoni',200)">Add</button>
-      </div>
-      <div class="item-box">
-        🥩 Salami — $200
-        <button onclick="addToOrder('Salami',200)">Add</button>
-      </div>
-      <div class="item-box">
-        🐖🧀 Ham & Cheese — $200
-        <button onclick="addToOrder('Ham & Cheese',200)">Add</button>
-      </div>
+          <div class="section">
+            <h3>Classic Pizzas</h3>
+            <div id="classic" class="cards"></div>
+          </div>
 
-      <h3>Specialty Pizzas</h3>
-      <div class="item-box">
-        🥦 Vegetarian — $250
-        <button onclick="addToOrder('Vegetarian',250)">Add</button>
-      </div>
-      <div class="item-box">
-        🍍 Hawaiian — $250
-        <button onclick="addToOrder('Hawaiian',250)">Add</button>
-      </div>
-      <div class="item-box">
-        🌶️ Diavola — $250
-        <button onclick="addToOrder('Diavola',250)">Add</button>
-      </div>
+          <div class="section">
+            <h3>Specialty Pizzas</h3>
+            <div id="specialty" class="cards"></div>
+          </div>
 
-      <h3>Get Stuffed Deals</h3>
-      <div class="item-box">
-        Classic Deal — $800
-        <button onclick="addToOrder('Get Stuffed Classic',800)">Add</button>
+          <div class="section">
+            <h3>Get Stuffed Deals</h3>
+            <div id="deals" class="cards"></div>
+          </div>
+
+          <div class="section">
+            <h3>Sides & Drinks</h3>
+            <div id="extras" class="cards"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- RIGHT: SUMMARY -->
+      <aside class="panel">
+        <h2>Order Summary</h2>
+        <div class="content">
+          <div class="tabs" role="tablist">
+            <button class="btn small" data-tab="summary" aria-selected="true">🧾 Summary</button>
+            <button class="btn small" data-tab="history" aria-selected="false">📜 History</button>
+          </div>
+
+          <!-- summary tab -->
+          <div id="tab-summary" role="tabpanel">
+            <div id="cart" class="order-card">
+              <div class="line muted" style="padding:12px">Your order is empty. Add something!</div>
+            </div>
+
+            <div class="discount">
+              <div>
+                <div class="muted" style="margin-bottom:6px">Discount</div>
+                <input id="discountRange" type="range" min="0" max="100" step="5" value="0" />
+              </div>
+              <div><span id="discountPct" class="pct">0%</span></div>
+            </div>
+
+            <div class="summary">
+              <div class="row"><span>Subtotal</span><strong id="subtotal">$0.00</strong></div>
+              <div class="row"><span>Discount</span><strong id="discount">$0.00</strong></div>
+              <div class="row total"><span>Total</span><strong id="total">$0.00</strong></div>
+            </div>
+
+            <div style="margin-top:10px;display:grid;gap:8px">
+              <button id="checkoutBtnB" class="checkout">Checkout</button>
+              <button id="clearBtnB" class="clear">Clear All</button>
+            </div>
+          </div>
+
+          <!-- history tab -->
+          <div id="tab-history" role="tabpanel" hidden>
+            <div id="historyList"></div>
+            <div class="toolrow" style="margin-top:8px">
+              <button id="clearHistory" class="btn small ghost">Clear History</button>
+            </div>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </div>
+
+  <!-- SIMPLE BUILDER MODAL -->
+  <dialog id="builderModal" style="border:none;border-radius:12px;padding:0;max-width:560px;width:92%">
+    <div style="background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:12px;overflow:hidden">
+      <div style="padding:12px 14px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center">
+        <strong>Build Your Pizza</strong>
+        <button id="builderClose" class="btn small">✕</button>
       </div>
-      <div class="item-box">
-        Specialty Deal — $1000
-        <button onclick="addToOrder('Ge
+      <div style="padding:14px;display:grid;gap:12px">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          <div>
+            <div class="muted" style="margin-bottom:6px">Size</div>
+            <div id="sizeOpts"></div>
+          </div>
+          <div>
+            <div class="muted" style="margin-bottom:6px">Crust</div>
+            <div id="crustOpts"></div>
+          </div>
+        </div>
+        <div>
+          <div class="muted" style="margin-bottom:6px">Toppings (priced per item)</div>
+          <div id="toppingOpts" style="display:grid;grid-template-columns:1fr 1fr;gap:8px"></div>
+        </div>
+        <div style="display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:12px">
+          <div class="muted">Qty</div>
+          <div class="qty">
+            <button id="bMinus">−</button><output id="bQty">1</output><button id="bPlus">+</button>
+          </div>
+          <div><strong id="bPrice">$0.00</strong></div>
+        </div>
+        <div style="display:flex;justify-content:flex-end">
+          <button id="builderAdd" class="btn">Add to Order</button>
+        </div>
+      </div>
+    </div>
+  </dialog>
+
+<script>
+/* ---------- DATA ---------- */
+const MENU = {
+  classic: [
+    {id:'cl-margh', name:'🍅🧀🌿 Margherita', price:200},
+    {id:'cl-pepp',  name:'🍕 Pepperoni',     price:200},
+    {id:'cl-salami',name:'🥩 Salami',        price:200},
+    {id:'cl-hc',    name:'🐖🧀 Ham & Cheese',price:200},
+  ],
+  specialty: [
+    {id:'sp-veg',  name:'🥦🍄 Vegetarian', price:250},
+    {id:'sp-haw',  name:'🍍 Hawaiian',    price:250},
+    {id:'sp-diav', name:'🌶️ Diavola',     price:250},
+  ],
+  deals: [
+    {id:'dl-classic', name:'Get Stuffed — Classic',   price:800},
+    {id:'dl-spec',    name:'Get Stuffed — Specialty', price:1000},
+  ],
+  extras: [
+    {id:'ex-bread', name:'🧄 Breadsticks', price:50},
+    {id:'ex-soda',  name:'🥤 Soda',        price:10},
+    {id:'ex-capri', name:'🧃 Capri-Sun',   price:15},
+    {id:'ex-water', name:'🚰 Water',       price:10},
+    {id:'ex-lunch', name:'🍱 Lunch Box',   price:360},
+  ],
+  builder: {
+    sizes: [
+      {id:'sz-s',  name:'Small 10"',  price:120},
+      {id:'sz-m',  name:'Medium 12"', price:160},
+      {id:'sz-l',  name:'Large 14"',  price:200},
+      {id:'sz-xl', name:'XL 16"',     price:240},
+    ],
+    crusts: [
+      {id:'cr-hand', name:'Hand Tossed', price:0},
+      {id:'cr-thin', name:'Thin',        price:10},
+      {id:'cr-deep', name:'Deep Dish',   price:25},
+      {id:'cr-gf',   name:'Gluten Free', price:30},
+    ],
+    toppings: [
+      {name:'Pepperoni',   price:8, cat:'Meats'},
+      {name:'Salami',      price:8, cat:'Meats'},
+      {name:'Ham',         price:8, cat:'Meats'},
+      {name:'Pineapple',   price:6, cat:'Veggies'},
+      {name:'Jalapeño',    price:6, cat:'Veggies'},
+      {name:'Bell Pepper', price:5, cat:'Veggies'},
+      {name:'Black Olive', price:8, cat:'Veggies'},
+      {name:'Pizza Cheese', price:4, cat:'Cheeses'},
+      {name:'Mozzarella',   price:10, cat:'Cheeses'},
+      {name:'Tomato Sauce', price:10, cat:'Pantry'},
+      {name:'Olive Oil',    price:8,  cat:'Pantry'},
+      {name:'Yeast',        price:10, cat:'Pantry'},
+      {name:'Flour',        price:6,  cat:'Pantry'},
+    ],
+  }
+};
+
+const $ = (s, r=document) => r.querySelector(s);
+const $$ = (s, r=document) => Array.from(r.querySelectorAll(s));
+const money = n => `$${n.toFixed(2)}`;
+
+/* ---------- STATE ---------- */
+const STATE_KEY = 'pizza_this_state';
+const HIST_KEY  = 'pizza_this_history';
+
+const state = {
+  cart: [],
+  discount: 0,
+};
+
+const historyState = {
+  entries: [],
+};
+
+try {
+  Object.assign(state, JSON.parse(localStorage.getItem(STATE_KEY)) || {});
+  Object.assign(historyState, JSON.parse(localStorage.getItem(HIST_KEY)) || {});
+} catch {}
+
+/* ---------- RENDER MENU CARDS ---------- */
+function card(item){
+  return `
+    <article class="card">
+      <h3>${item.name}</h3>
+      <div class="addrow">
+        <span class="price">${money(item.price)}</span>
+        <div class="qty">
+          <button class="qminus">−</button><output>1</output><button class="qplus">+</button>
+        </div>
+      </div>
+      <div style="margin-top:8px;display:flex;justify-content:flex-end">
+        <button class="btn addBtn" data-id="${item.id}">Add</button>
+      </div>
+    </article>
+  `;
+}
+function renderMenu(){
+  $('#classic').innerHTML   = MENU.classic.map(card).join('');
+  $('#specialty').innerHTML = MENU.specialty.map(card).join('');
+  $('#deals').innerHTML     = MENU.deals.map(card).join('');
+  $('#extras').innerHTML    = MENU.extras.map(card).join('');
+
+  // qty handlers & add to cart
+  $$('.card').forEach(cardEl=>{
+    let count = 1;
+    const out = $('output', cardEl);
+    $('.qminus', cardEl).addEventListener('click', ()=>{ count=Math.max(1,count-1); out.value=count; });
+    $('.qplus', cardEl).addEventListener('click', ()=>{ count++; out.value=count; });
+    $('.addBtn', cardEl).addEventListener('click', ()=>{
+      const id = $('.addBtn', cardEl).dataset.id;
+      const item = [...MENU.classic, ...MENU.specialty, ...MENU.deals, ...MENU.extras].find(i=>i.id===id);
+      addToCart({ name:item.name, unit:item.price, qty:count });
+    });
+  });
+}
+
+/* ---------- CART ---------- */
+function persist(){
+  localStorage.setItem(STATE_KEY, JSON.stringify(state));
+}
+function renderCart(){
+  const wrap = $('#cart');
+  if (state.cart.length === 0){
+    wrap.innerHTML = `<div class="line muted">Your order is empty. Add something!</div>`;
+  } else {
+    wrap.innerHTML = state.cart.map((l,i)=>`
+      <div class="line">
+        <div>
+          <div><strong>${l.name}</strong></div>
+          <div class="muted">${money(l.unit)} each</div>
+        </div>
+        <div class="qty">
+          <button data-dec="${i}">−</button><output>${l.qty}</output><button data-inc="${i}">+</button>
+        </div>
+        <div><strong>${money(l.unit*l.qty)}</strong></div>
+      </div>
+    `).join('');
+  }
+
+  // qty buttons
+  $$('[data-inc]').forEach(b=>b.addEventListener('click',()=>{
+    const i = +b.dataset.inc; state.cart[i].qty++; persist(); totals();
+  }));
+  $$('[data-dec]').forEach(b=>b.addEventListener('click',()=>{
+    const i = +b.dataset.dec; state.cart[i].qty--; if(state.cart[i].qty<=0) state.cart.splice(i,1); persist(); totals();
+  }));
+
+  totals();
+}
+function addToCart(line){
+  const key = `${line.name}|${line.unit}`;
+  const found = state.cart.find(l => `${l.name}|${l.unit}`===key);
+  if (found) found.qty += line.qty;
+  else state.cart.push(line);
+  persist();
+  renderCart();
+}
+function totals(){
+  const sub = state.cart.reduce((s,l)=>s + l.unit*l.qty, 0);
+  const disc = +(sub * (state.discount/100)).toFixed(2);
+  const tot = sub - disc;
+  $('#subtotal').textContent = money(sub);
+  $('#discount').textContent = `-${money(disc)}`;
+  $('#total').textContent = money(tot);
+}
+
+/* ---------- DISCOUNT ---------- */
+const range = $('#discountRange');
+const pct   = $('#discountPct');
+range.value = state.discount || 0;
+pct.textContent = `${range.value}%`;
+range.addEventListener('input', ()=>{
+  state.discount = +range.value; pct.textContent = `${range.value}%`;
+  persist(); totals();
+});
+
+/* ---------- CHECKOUT / CLEAR ---------- */
+function checkout(){
+  if (state.cart.length===0){ alert('Your order is empty.'); return; }
+  const sub = state.cart.reduce((s,l)=>s + l.unit*l.qty, 0);
+  const disc = +(sub * (state.discount/100)).toFixed(2);
+  const tot = +(sub - disc).toFixed(2);
+  historyState.entries.unshift({
+    id: Date.now(),
+    when: new Date().toLocaleString(),
+    discount: state.discount,
+    subtotal: +sub.toFixed(2),
+    discountAmt: disc,
+    total: tot,
+    lines: state.cart.map(l=>({name:l.name, qty:l.qty, unit:l.unit, line:+(l.unit*l.qty).toFixed(2)}))
+  });
+  localStorage.setItem(HIST_KEY, JSON.stringify(historyState));
+  // clear cart
+  state.cart = []; state.discount = 0; range.value = 0; pct.textContent = '0%'; persist();
+  renderCart(); renderHistory();
+  // switch to history tab
+  selectTab('history');
+}
+function clearAll(){
+  state.cart=[]; state.discount=0; range.value=0; pct.textContent='0%'; persist(); renderCart();
+}
+$('#checkoutBtnA').addEventListener('click', checkout);
+$('#checkoutBtnB').addEventListener('click', checkout);
+$('#clearBtnA').addEventListener('click', clearAll);
+$('#clearBtnB').addEventListener('click', clearAll);
+
+/* ---------- HISTORY ---------- */
+function renderHistory(){
+  const list = $('#historyList');
+  if (!historyState.entries.length){
+    list.innerHTML = `<div class="muted">No past orders yet.</div>`;
+    return;
+  }
+  list.innerHTML = historyState.entries.map(h=>`
+    <article class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
+        <div>
+          <div><strong>${h.when}</strong></div>
+          <div class="muted">${h.lines.length} item(s) • Discount ${h.discount}%</div>
+        </div>
+        <div><strong>${money(h.total)}</strong></div>
+      </div>
+      <details class="muted" style="margin-top:6px">
+        <summary>View items</summary>
+        <ul style="margin:6px 0 0 16px">
+          ${h.lines.map(l=>`<li>${l.qty}× ${l.name} — ${money(l.line)}</li>`).join('')}
+        </ul>
+      </details>
+      <div class="toolrow">
+        <button class="btn small" data-reorder="${h.id}">Reorder</button>
+        <button class="btn small ghost" data-delete="${h.id}">Delete</button>
+      </div>
+    </article>
+  `).join('');
+  // actions
+  $$('[data-reorder]', list).forEach(b=>b.addEventListener('click', ()=>{
+    const id = +b.dataset.reorder;
+    const h = historyState.entries.find(e=>e.id===id); if(!h) return;
+    h.lines.forEach(l => addToCart({name:l.name, unit:l.unit, qty:l.qty}));
+    selectTab('summary');
+  }));
+  $$('[data-delete]', list).forEach(b=>b.addEventListener('click', ()=>{
+    const id = +b.dataset.delete;
+    historyState.entries = historyState.entries.filter(e=>e.id!==id);
+    localStorage.setItem(HIST_KEY, JSON.stringify(historyState));
+    renderHistory();
+  }));
+}
+$('#clearHistory').addEventListener('click', ()=>{
+  if (confirm('Clear all saved orders?')){
+    historyState.entries = [];
+    localStorage.setItem(HIST_KEY, JSON.stringify(historyState));
+    renderHistory();
+  }
+});
+
+/* ---------- TABS ---------- */
+const tabButtons = $$('[data-tab]');
+function selectTab(name){
+  $('#tab-summary').hidden = name!=='summary';
+  $('#tab-history').hidden = name!=='history';
+  tabButtons.forEach(b=>b.setAttribute('aria-selected', String(b.dataset.tab===name)));
+}
+tabButtons.forEach(b=>b.addEventListener('click', ()=>selectTab(b.dataset.tab)));
+
+/* ---------- THEME ---------- */
+const themeBtn = $('#themeBtn');
+let theme = localStorage.getItem('pizza_theme') || 'dark';
+applyTheme(theme);
+themeBtn.addEventListener('click', ()=>{
+  theme = (theme==='dark') ? 'light' : 'dark';
+  applyTheme(theme);
+});
+function applyTheme(t){
+  document.body.style.background = (t==='dark') ? getComputedStyle(document.documentElement).getPropertyValue('--bg') : '#f6f7fb';
+  document.body.dataset.theme = t;
+  themeBtn.textContent = (t==='dark') ? '☀️ Light' : '🌙 Dark';
+  localStorage.setItem('pizza_theme', t);
+}
+
+/* ---------- BUILDER ---------- */
+const bModal = $('#builderModal');
+const bBtn = $('#builderBtn'), bClose = $('#builderClose');
+const bQtyOut = $('#bQty'), bPrice = $('#bPrice');
+let bState = { size: MENU.builder.sizes[2], crust: MENU.builder.crusts[0], tops:new Set(), qty:1 };
+bBtn.addEventListener('click', openBuilder);
+bClose.addEventListener('click', ()=>bModal.close());
+$('#bMinus').addEventListener('click', ()=>{ bState.qty=Math.max(1,bState.qty-1); bQtyOut.value=bState.qty; priceBuilder(); });
+$('#bPlus').addEventListener('click', ()=>{ bState.qty++; bQtyOut.value=bState.qty; priceBuilder(); });
+$('#builderAdd').addEventListener('click', ()=>{
+  const unit = priceUnit();
+  const meta = `${bState.size.name}, ${bState.crust.name}${bState.tops.size?`, ${[...bState.tops].join(', ')}`:''}`;
+  addToCart({name:'Custom Pizza', unit, qty:bState.qty});
+  bModal.close();
+});
+function openBuilder(){
+  // sizes
+  $('#sizeOpts').innerHTML = MENU.builder.sizes.map(s=>`
+    <label class="btn small" style="display:flex;justify-content:space-between">
+      <span>${s.name}</span>
+      <span>${money(s.price)} <input type="radio" name="bSize" value="${s.id}" ${s.id===bState.size.id?'checked':''}></span>
+    </label>`).join('');
+  $('#crustOpts').innerHTML = MENU.builder.crusts.map(c=>`
+    <label class="btn small" style="display:flex;justify-content:space-between">
+      <span>${c.name}</span>
+      <span>${c.price?`+${money(c.price)}`:'Included'} <input type="radio" name="bCrust" value="${c.id}" ${c.id===bState.crust.id?'checked':''}></span>
+    </label>`).join('');
+  // toppings (2 columns)
+  const groups = MENU.builder.toppings.reduce((a,t)=>((a[t.cat]=a[t.cat]||[]).push(t),a),{});
+  $('#toppingOpts').innerHTML = Object.entries(groups).map(([cat,items])=>`
+    <div class="card" style="padding:10px">
+      <div style="font-weight:800;margin-bottom:6px">${cat}</div>
+      ${items.map(t=>`
+        <label class="btn small" style="justify-content:space-between;margin:4px 0">
+          <span>${t.name}</span>
+          <span>${money(t.price)} <input type="checkbox" value="${t.name}" ${bState.tops.has(t.name)?'checked':''}></span>
+        </label>`).join('')}
+    </div>`).join('');
+
+  $$('input[name=bSize]').forEach(r=>r.addEventListener('change',e=>{
+    bState.size = MENU.builder.sizes.find(s=>s.id===e.target.value); priceBuilder();
+  }));
+  $$('input[name=bCrust]').forEach(r=>r.addEventListener('change',e=>{
+    bState.crust = MENU.builder.crusts.find(c=>c.id===e.target.value); priceBuilder();
+  }));
+  $$('input[type=checkbox]', $('#toppingOpts')).forEach(c=>c.addEventListener('change',e=>{
+    if (e.target.checked) bState.tops.add(e.target.value); else bState.tops.delete(e.target.value); priceBuilder();
+  }));
+
+  bQtyOut.value = bState.qty;
+  priceBuilder();
+  bModal.showModal();
+}
+function priceUnit(){
+  const base = bState.size.price + bState.crust.price;
+  const tops = [...bState.tops].reduce((s,n)=> {
+    const t = MENU.builder.toppings.find(x=>x.name===n); return s+(t?t.price:0);
+  },0);
+  return +(base+tops).toFixed(2);
+}
+function priceBuilder(){
+  bPrice.textContent = money(priceUnit()*bState.qty);
+}
+
+/* ---------- INIT ---------- */
+renderMenu();
+renderCart();
+renderHistory();
+</script>
+</body>
+</html>
