@@ -2,643 +2,175 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Pizza This — Order Calculator</title>
   <style>
     :root {
-      /* Italian palette */
+      /* Italian theme */
       --red: #d32f2f;
       --green: #2e7d32;
       --white: #ffffff;
-      --cream: #fff9f2;
-      --ink: #1f2430;
-      --muted: #5d677b;
-      --border: #e5e7ef;
-      --shadow: 0 10px 30px rgba(0,0,0,.08);
+      --dark-bg: #121212;
+      --dark-panel: #1e1e1e;
+      --dark-text: #f5f5f5;
 
-      --bg: #fafafa;
-      --panel: #ffffff;
-      --card: #ffffff;
-      --chip: #f5f6fb;
-      --text: var(--ink);
-      --primary: var(--red);
-      --primary-2: #ff5a5a;
-      --accent: var(--green);
-      --ok: #1ea97a;
-      --danger: #ff5c7a;
-      --radius: 16px;
-
-      /* Dark theme defaults (will be applied via [data-theme="dark"]) */
-      --bg-dark: #0f1220;
-      --panel-dark: #13172a;
-      --card-dark: #171c33;
-      --chip-dark: #222847;
-      --text-dark: #e8ecf8;
-      --border-dark: #2a3156;
+      --box-radius: 12px;
+      --shadow: 0 6px 18px rgba(0,0,0,0.25);
     }
-    /* Dark theme switch */
-    [data-theme="dark"] {
-      --bg: var(--bg-dark);
-      --panel: var(--panel-dark);
-      --card: var(--card-dark);
-      --chip: var(--chip-dark);
-      --text: var(--text-dark);
-      --border: var(--border-dark);
+
+    body {
+      margin: 0;
+      font-family: "Segoe UI", sans-serif;
+      background: var(--white);
+      color: #222;
+      transition: background 0.3s, color 0.3s;
     }
-    * { box-sizing: border-box; }
-    html, body {
-      margin: 0; padding: 0; background: var(--bg); color: var(--text);
-      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, "Helvetica Neue", Arial, "Apple Color Emoji", "Segoe UI Emoji";
+
+    body.dark {
+      background: var(--dark-bg);
+      color: var(--dark-text);
     }
-    h1, h2, h3, h4 { font-family: Georgia, "Times New Roman", serif; letter-spacing: .2px; }
-    .container { max-width: 1200px; margin: 32px auto; padding: 0 16px; }
-    header { display: flex; gap: 16px; align-items: center; justify-content: space-between; margin-bottom: 20px; }
-    .brand { display: flex; align-items: center; gap: 12px; }
-    .brand .logo { width: 48px; height: 48px; border-radius: 12px; box-shadow: var(--shadow); position: relative; background: linear-gradient(135deg, var(--white) 0 33%, var(--green) 33% 66%, var(--red) 66% 100%); }
-    .brand .logo::after { content: "🍕"; position: absolute; inset: 0; display: grid; place-items: center; font-size: 22px; }
-    .brand h1 { font-size: 1.4rem; margin: 0; letter-spacing: 0.3px; }
 
-    .grid { display: grid; grid-template-columns: 1.2fr 0.8fr; gap: 20px; }
-    @media (max-width: 980px) { .grid { grid-template-columns: 1fr; } }
+    header {
+      background: linear-gradient(to right, var(--green), var(--white), var(--red));
+      padding: 1rem;
+      text-align: center;
+      font-size: 1.5rem;
+      font-weight: bold;
+    }
 
-    .panel { background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); }
-    .panel h2 { margin: 0; padding: 16px 18px; font-size: 1rem; letter-spacing: .5px; border-bottom: 1px solid var(--border); color: var(--text); }
-    .panel .content { padding: 16px; }
+    .container {
+      display: flex;
+      gap: 1rem;
+      padding: 1rem;
+    }
 
-    .section { margin-bottom: 16px; }
-    .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; }
+    .menu, .summary {
+      flex: 1;
+      background: #fafafa;
+      border-radius: var(--box-radius);
+      padding: 1rem;
+      box-shadow: var(--shadow);
+    }
 
-    .card { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 12px; position: relative; box-shadow: var(--shadow); display: flex; flex-direction: column; gap: 8px; }
-    .card h3 { margin: 0; font-size: 1rem; }
-    .price { color: var(--accent); font-weight: 700; }
-    .muted { color: var(--muted); font-size: .9rem; }
+    body.dark .menu, 
+    body.dark .summary {
+      background: var(--dark-panel);
+    }
 
-    .qty { display: grid; grid-template-columns: 32px 1fr 32px; align-items: center; gap: 8px; margin-top: 6px; }
-    .qty button { height: 36px; border-radius: 10px; border: 1px solid var(--border); background: var(--chip); color: var(--text); cursor: pointer; font-size: 18px; }
-    .qty output { text-align: center; }
+    h2 {
+      margin-top: 0.5rem;
+      margin-bottom: 0.5rem;
+    }
 
-    .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 10px 14px; border-radius: 12px; border: 1px solid var(--border); background: var(--chip); color: var(--text); cursor: pointer; text-decoration: none; font-weight: 600; }
-    .btn.primary { background: linear-gradient(135deg, var(--green), var(--red)); border: none; color: #fff; }
-    .btn.block { width: 100%; }
-    .btn.ghost { background: transparent; }
+    .item-box {
+      border: 1px solid #ccc;
+      border-radius: var(--box-radius);
+      padding: 0.5rem;
+      margin: 0.5rem 0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #fff;
+      transition: background 0.3s, border 0.3s;
+    }
 
-    .toolrow { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
-    .chip { padding: 6px 10px; border-radius: 999px; background: var(--chip); border: 1px solid var(--border); color: var(--muted); font-weight: 600; font-size: .85rem; }
+    body.dark .item-box {
+      background: #1e1e1e;
+      border: 1px solid #333;
+    }
 
-    /* Order Summary */
-    .summary { display: flex; flex-direction: column; gap: 14px; }
-    .summary .row { display: flex; justify-content: space-between; align-items: center; }
-    .summary .row.total { font-size: 1.2rem; font-weight: 800; }
-    .divider { height: 1px; background: var(--border); margin: 4px 0; }
+    .item-box button {
+      background: var(--green);
+      color: white;
+      border: none;
+      border-radius: 6px;
+      padding: 0.3rem 0.6rem;
+      cursor: pointer;
+    }
 
-    .discount { display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: center; }
-    .discount input[type="range"] { width: 100%; }
-    .kbd { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; background: transparent; border: 1px solid var(--primary); color: var(--primary); border-radius: 8px; padding: 4px 8px; font-weight: 700; }
+    .item-box button:hover {
+      background: var(--red);
+    }
 
-    .tabs .btn[aria-selected="true"] { outline: 2px solid var(--accent); }
+    .summary h3 {
+      border-bottom: 2px solid var(--red);
+      padding-bottom: 0.5rem;
+    }
 
-    .cart-item { display: grid; grid-template-columns: 1fr auto auto; gap: 10px; align-items: center; padding: 8px 0; border-bottom: 1px dashed var(--border); }
-    .cart-item:last-child { border-bottom: none; }
-    .small { font-size: .85rem; color: var(--muted); }
+    .toggle-mode {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      background: var(--red);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      padding: 0.4rem 0.8rem;
+      cursor: pointer;
+    }
 
-    .right-actions { display: grid; gap: 8px; }
+    .checkout {
+      margin-top: 1rem;
+      background: linear-gradient(to right, var(--green), var(--red));
+      border: none;
+      padding: 0.8rem;
+      width: 100%;
+      color: white;
+      font-weight: bold;
+      font-size: 1rem;
+      border-radius: var(--box-radius);
+      cursor: pointer;
+    }
+
   </style>
 </head>
 <body>
+  <header>🍕 Pizza This — Order Calculator</header>
+  <button class="toggle-mode" onclick="toggleMode()">Toggle Dark Mode</button>
+
   <div class="container">
-    <header>
-      <div class="brand">
-        <div class="logo" aria-hidden="true"></div>
-        <div>
-          <h1>Pizza This — Order Calculator</h1>
-          <div class="muted">Build pizzas, add deals & sides, apply discounts, and get an exact total.</div>
-        </div>
+    <!-- Menu -->
+    <div class="menu">
+      <h2>Menu</h2>
+
+      <h3>Classic Pizzas</h3>
+      <div class="item-box">
+        🍅 Margherita — $200
+        <button onclick="addToOrder('Margherita',200)">Add</button>
       </div>
-      <div class="toolrow">
-        <span class="chip">Autosaves</span>
-        <button class="btn ghost" id="themeBtn" aria-pressed="false" title="Toggle dark mode">🌙 Dark</button>
-        <button class="btn ghost" id="resetBtn">Clear All</button>
-        <button class="btn primary" id="checkoutBtn">Checkout</button>
+      <div class="item-box">
+        🍕 Pepperoni — $200
+        <button onclick="addToOrder('Pepperoni',200)">Add</button>
       </div>
-    </header>
-    <div class="flagbar" aria-hidden="true" style="height: 10px; border-radius: 8px; overflow: hidden; box-shadow: var(--shadow); margin-bottom: 18px;">
-      <div style="display:flex; height:100%;">
-        <div style="flex:1; background: var(--green);"></div>
-        <div style="flex:1; background: var(--white);"></div>
-        <div style="flex:1; background: var(--red);"></div>
+      <div class="item-box">
+        🥩 Salami — $200
+        <button onclick="addToOrder('Salami',200)">Add</button>
       </div>
-    </div>
-
-    <div class="grid">
-      <!-- Left: Menu -->
-      <section class="panel">
-        <h2>Menu</h2>
-        <div class="content">
-          <!-- Build Custom Pizza -->
-          <div class="section">
-            <div class="toolrow" style="justify-content: space-between; align-items: center;">
-              <h3 style="margin:0">Build Your Pizza</h3>
-              <button class="btn" id="buildPizzaBtn">Customize + Add</button>
-            </div>
-            <div class="muted" style="margin-top:6px">Choose size, crust, and toppings. Price updates live.</div>
-          </div>
-
-          <!-- Chef Specials (preset pizzas) -->
-          <div class="section">
-            <h3 style="margin: 0 0 8px 0;">Classic Pizzas</h3>
-            <div class="cards" id="classic"></div>
-          </div>
-
-          <div class="section">
-            <h3 style="margin: 0 0 8px 0;">Specialty Pizzas</h3>
-            <div class="cards" id="specialty"></div>
-          </div>
-
-          <div class="section">
-            <h3 style="margin: 0 0 8px 0;">Get Stuffed Deals</h3>
-            <div class="cards" id="deals"></div>
-          </div>
-
-          <!-- Extras / Sides / Drinks -->
-          <div class="section">
-            <h3 style="margin: 0 0 8px 0;">Sides & Drinks</h3>
-            <div class="cards" id="extras"></div>
-          </div>
-        </div>
-      </section>
-
-      <!-- Right: Summary -->
-      <aside class="panel">
-        <h2>Orders</h2>
-        <div class="content">
-          <div class="tabs" role="tablist" aria-label="Order panels" style="display:flex; gap:8px; margin-bottom:10px;">
-            <button class="btn" data-tab="summary" aria-selected="true">🧾 Summary</button>
-            <button class="btn" data-tab="history" aria-selected="false">📜 History</button>
-          </div>
-
-          <!-- SUMMARY TAB -->
-          <div id="tab-summary" role="tabpanel">
-            <div id="cart"></div>
-            <div class="divider"></div>
-
-            <div class="discount">
-              <label for="discountRange">Discount</label>
-              <div><span id="discountLabel" class="kbd" style="border-color: var(--primary); color: var(--primary);">0%</span></div>
-              <input id="discountRange" type="range" min="0" max="100" step="5" value="0" aria-label="Discount percentage" />
-            </div>
-
-            <div class="summary" style="margin-top:12px;">
-              <div class="row"><span>Subtotal</span><strong id="subtotal">$0.00</strong></div>
-              <div class="row"><span>Discount</span><strong id="discount">-$0.00</strong></div>
-              <div class="row total"><span>Total</span><strong id="total">$0.00</strong></div>
-            </div>
-
-            <div class="right-actions" style="margin-top:12px;">
-              <button class="btn primary block" id="checkoutBtn2">Checkout</button>
-              <button class="btn ghost block" id="resetBtn2">Clear All</button>
-            </div>
-          </div>
-
-          <!-- HISTORY TAB -->
-          <div id="tab-history" role="tabpanel" hidden>
-            <div id="historyList" class="summary" style="gap:12px;"></div>
-            <div class="right-actions" style="margin-top:12px;">
-              <button class="btn ghost" id="clearHistoryBtn">Clear History</button>
-            </div>
-          </div>
-        </div>
-      </aside>
-    </div>
-  </div>
-
-  <!-- Build Pizza Modal -->
-  <dialog id="pizzaModal">
-    <div class="modal-header">
-      <strong>Build Your Pizza</strong>
-      <button class="btn" id="closeModal" aria-label="Close">✕</button>
-    </div>
-    <div class="modal-body">
-      <div class="two-col">
-        <div>
-          <h4 style="margin:0 0 8px 0;">Size</h4>
-          <div id="sizeOptions"></div>
-        </div>
-        <div>
-          <h4 style="margin:0 0 8px 0;">Crust</h4>
-          <div id="crustOptions"></div>
-        </div>
+      <div class="item-box">
+        🐖🧀 Ham & Cheese — $200
+        <button onclick="addToOrder('Ham & Cheese',200)">Add</button>
       </div>
 
-      <div>
-        <h4 style="margin:0 0 8px 0;">Toppings <span class="small">(priced per item)</span></h4>
-        <div class="toppings" id="toppingOptions"></div>
+      <h3>Specialty Pizzas</h3>
+      <div class="item-box">
+        🥦 Vegetarian — $250
+        <button onclick="addToOrder('Vegetarian',250)">Add</button>
+      </div>
+      <div class="item-box">
+        🍍 Hawaiian — $250
+        <button onclick="addToOrder('Hawaiian',250)">Add</button>
+      </div>
+      <div class="item-box">
+        🌶️ Diavola — $250
+        <button onclick="addToOrder('Diavola',250)">Add</button>
       </div>
 
-      <div class="two-col">
-        <div class="option">
-          <div>
-            <div><strong>Quantity</strong></div>
-            <div class="small">How many of this custom pizza?</div>
-          </div>
-          <div class="qty">
-            <button id="qtyMinus">−</button>
-            <output id="qtyOutput">1</output>
-            <button id="qtyPlus">+</button>
-          </div>
-        </div>
-        <div class="option">
-          <div>
-            <div><strong>Current Price</strong></div>
-            <div class="small">Auto-updates as you change options</div>
-          </div>
-          <div><strong id="livePrice">$0.00</strong></div>
-        </div>
+      <h3>Get Stuffed Deals</h3>
+      <div class="item-box">
+        Classic Deal — $800
+        <button onclick="addToOrder('Get Stuffed Classic',800)">Add</button>
       </div>
-
-      <div class="toolrow" style="justify-content:flex-end;">
-        <button class="btn" id="addPizzaBtn">Add to Order</button>
-      </div>
-    </div>
-  </dialog>
-
-  <script>
-    // ---------- Data ----------
-    const MENU = {
-      classic: [
-        { id: 'cl-margh', name: '🍅🧀🌿 Margherita', price: 200 },
-        { id: 'cl-pepp',  name: '🍕 Pepperoni',      price: 200 },
-        { id: 'cl-salami',name: '🥩 Salami',         price: 200 },
-        { id: 'cl-hamche',name: '🐷🧀 Ham & Cheese',  price: 200 },
-      ],
-      specialty: [
-        { id: 'sp-veg',   name: '🥦🍄 Vegetarian',  price: 250 },
-        { id: 'sp-haw',   name: '🍍 Hawaiian',     price: 250 },
-        { id: 'sp-diav',  name: '🌶️ Diavola',      price: 250 },
-      ],
-      deals: [
-        { id: 'dl-classic', name: 'Get Stuffed — Classic',   price: 800 },
-        { id: 'dl-special', name: 'Get Stuffed — Specialty', price: 1000 },
-      ],
-      extras: [
-        { id: 'ex-bread', name: '🧄 Breadsticks', price: 50 },
-        { id: 'ex-soda',  name: '🥤 Soda',        price: 10 },
-        { id: 'ex-capri', name: '🧃 Capri-Sun',   price: 15 },
-        { id: 'ex-water', name: '🚰 Water',       price: 10 },
-        { id: 'ex-lunch', name: '🍱 Lunch Box',   price: 360 },
-      ],
-      builder: {
-        sizes: [
-          { id: 'sz-s',  name: 'Small 10"',  price: 120 },
-          { id: 'sz-m',  name: 'Medium 12"', price: 160 },
-          { id: 'sz-l',  name: 'Large 14"',  price: 200 },
-          { id: 'sz-xl', name: 'XL 16"',     price: 240 },
-        ],
-        crusts: [
-          { id: 'cr-hand', name: 'Hand Tossed', price: 0 },
-          { id: 'cr-thin', name: 'Thin',        price: 10 },
-          { id: 'cr-deep', name: 'Deep Dish',   price: 25 },
-          { id: 'cr-gf',   name: 'Gluten Free', price: 30 },
-        ],
-        toppings: [
-          { name: 'Pepperoni',   price: 8,  cat: 'Meats' },
-          { name: 'Salami',      price: 8,  cat: 'Meats' },
-          { name: 'Ham',         price: 8,  cat: 'Meats' },
-
-          { name: 'Pineapple',   price: 6,  cat: 'Veggies' },
-          { name: 'Jalapeño',    price: 6,  cat: 'Veggies' },
-          { name: 'Bell Pepper', price: 5,  cat: 'Veggies' },
-          { name: 'Black Olive', price: 8,  cat: 'Veggies' },
-
-          { name: 'Pizza Cheese', price: 4, cat: 'Cheeses' },
-          { name: 'Mozzarella',   price: 10, cat: 'Cheeses' },
-
-          { name: 'Tomato Sauce', price: 10, cat: 'Pantry' },
-          { name: 'Olive Oil',    price: 8,  cat: 'Pantry' },
-          { name: 'Yeast',        price: 10, cat: 'Pantry' },
-          { name: 'Flour',        price: 6,  cat: 'Pantry' },
-        ],
-      }
-    };
-
-    const currency = (n) => `$${n.toFixed(2)}`;
-
-    // ---------- State ----------
-    const state = {
-      cart: [],
-      discountPct: 0,
-      history: []
-    };
-
-    // Load from localStorage
-    const saved = localStorage.getItem('pizza_calc_state');
-    if (saved) {
-      try { Object.assign(state, JSON.parse(saved)); } catch {}
-    }
-    const HISTORY_KEY = 'pizza_order_history';
-    const savedHist = localStorage.getItem(HISTORY_KEY);
-    if (savedHist) {
-      try { state.history = JSON.parse(savedHist); } catch {}
-    }
-
-    const persist = () => localStorage.setItem('pizza_calc_state', JSON.stringify({ cart: state.cart, discountPct: state.discountPct }));
-    const persistHistory = () => localStorage.setItem(HISTORY_KEY, JSON.stringify(state.history));
-
-    // ---------- Render Helpers ----------
-    function renderCards() {
-      const classic = document.getElementById('classic');
-      const specialty = document.getElementById('specialty');
-      const deals = document.getElementById('deals');
-      const extras = document.getElementById('extras');
-
-      const make = (arr) => arr.map(item => cardHTML(item, item.desc)).join('');
-      classic.innerHTML = make(MENU.classic);
-      specialty.innerHTML = make(MENU.specialty);
-      deals.innerHTML = make(MENU.deals);
-      extras.innerHTML = make(MENU.extras);
-
-      // attach handlers
-      [...document.querySelectorAll('[data-add]')].forEach(btn => btn.addEventListener('click', () => {
-        const id = btn.getAttribute('data-add');
-        const all = [...MENU.classic, ...MENU.specialty, ...MENU.deals, ...MENU.extras];
-        const item = all.find(i => i.id === id);
-        addToCart({ name: item.name, unitPrice: item.price, qty: 1 });
-      }));
-
-      // qty buttons inside cards
-      [...document.querySelectorAll('.card .qty')].forEach(q => {
-        const minus = q.querySelector('button:first-child');
-        const output = q.querySelector('output');
-        const plus  = q.querySelector('button:last-child');
-        let count = 1;
-        minus.addEventListener('click',()=>{ count=Math.max(1, count-1); output.value=count; });
-        plus.addEventListener('click',()=>{ count++; output.value=count; });
-        q.parentElement.querySelector('[data-add]').addEventListener('click',()=>{
-          const id = q.parentElement.querySelector('[data-add]').getAttribute('data-add');
-          const all = [...MENU.classic, ...MENU.specialty, ...MENU.deals, ...MENU.extras];
-          const item = all.find(i => i.id === id);
-          addToCart({ name: item.name, unitPrice: item.price, qty: count });
-        });
-      });
-    }
-
-    function cardHTML(item, desc) {
-      return `
-        <article class="card">
-          <h3>${item.name}</h3>
-          ${desc ? `<div class="muted">${desc}</div>` : ''}
-          <div class="toolrow" style="justify-content:space-between;">
-            <span class="price">${currency(item.price)}</span>
-            <div class="qty">
-              <button aria-label="decrease">−</button>
-              <output>1</output>
-              <button aria-label="increase">+</button>
-            </div>
-          </div>
-          <button class="btn" data-add="${item.id}">Add</button>
-        </article>
-      `;
-    }
-
-    function renderCart() {
-      const cartEl = document.getElementById('cart');
-      if (state.cart.length === 0) {
-        cartEl.innerHTML = `<div class="muted">Your order is empty. Add a pizza or extra to get started.</div>`;
-      } else {
-        cartEl.innerHTML = state.cart.map((line, idx) => `
-          <div class="cart-item">
-            <div>
-              <div><strong>${line.name}</strong> ${line.meta ? `<span class="small">${line.meta}</span>`:''}</div>
-              <div class="small">${currency(line.unitPrice)} each</div>
-            </div>
-            <div class="qty">
-              <button aria-label="decrease" data-dec="${idx}">−</button>
-              <output>${line.qty}</output>
-              <button aria-label="increase" data-inc="${idx}">+</button>
-            </div>
-            <div><strong>${currency(line.unitPrice * line.qty)}</strong></div>
-          </div>
-        `).join('');
-      }
-
-      // Qty handlers
-      [...document.querySelectorAll('[data-inc]')].forEach(b=>b.addEventListener('click',()=>{
-        const i = +b.getAttribute('data-inc');
-        state.cart[i].qty++; persist(); renderAll();
-      }));
-      [...document.querySelectorAll('[data-dec]')].forEach(b=>b.addEventListener('click',()=>{
-        const i = +b.getAttribute('data-dec');
-        state.cart[i].qty--; if (state.cart[i].qty<=0) state.cart.splice(i,1); persist(); renderAll();
-      }));
-
-      // totals
-      const subtotal = state.cart.reduce((s,l)=>s + l.unitPrice*l.qty, 0);
-      const discount = +(subtotal * (state.discountPct/100)).toFixed(2);
-      const total = subtotal - discount;
-      document.getElementById('subtotal').textContent = currency(subtotal);
-      document.getElementById('discount').textContent = `-${currency(discount)}`;
-      document.getElementById('total').textContent = currency(total);
-    }
-
-    function renderDiscount() {
-      const r = document.getElementById('discountRange');
-      const lab = document.getElementById('discountLabel');
-      r.value = state.discountPct;
-      lab.textContent = `${state.discountPct}%`;
-    }
-
-    function renderAll(){
-      renderCart();
-      renderDiscount();
-      renderHistory();
-    }
-
-    // ---------- Cart Ops ----------
-    function addToCart(line) {
-      // merge identical lines (same name + meta + unitPrice)
-      const key = `${line.name}|${line.meta||''}|${line.unitPrice}`;
-      const found = state.cart.find(l => `${l.name}|${l.meta||''}|${l.unitPrice}` === key);
-      if (found) found.qty += line.qty; else state.cart.push(line);
-      persist();
-      renderAll();
-    }
-
-    // ---------- Build Pizza Modal Logic ----------
-    const modal = document.getElementById('pizzaModal');
-    const sizeWrap = document.getElementById('sizeOptions');
-    const crustWrap = document.getElementById('crustOptions');
-    const toppingWrap = document.getElementById('toppingOptions');
-    const livePrice = document.getElementById('livePrice');
-    const qtyOutput = document.getElementById('qtyOutput');
-
-    const buildState = {
-      size: MENU.builder.sizes[2], // default Large
-      crust: MENU.builder.crusts[0],
-      toppings: new Set(),
-      qty: 1,
-    };
-
-    function renderBuilder() {
-      // Size radios
-      sizeWrap.innerHTML = MENU.builder.sizes.map(s => `
-        <label class="option">
-          <span>${s.name}</span>
-          <span>${currency(s.price)} <input type="radio" name="size" value="${s.id}" ${s.id===buildState.size.id?'checked':''}></span>
-        </label>
-      `).join('');
-      // Crust radios
-      crustWrap.innerHTML = MENU.builder.crusts.map(c => `
-        <label class="option">
-          <span>${c.name}</span>
-          <span>${c.price>0?`+${currency(c.price)}`:'Included'} <input type="radio" name="crust" value="${c.id}" ${c.id===buildState.crust.id?'checked':''}></span>
-        </label>
-      `).join('');
-      // Toppings checkboxes
-      // Group toppings by category
-      const groups = MENU.builder.toppings.reduce((acc, t) => { (acc[t.cat] ||= []).push(t); return acc; }, {});
-      toppingWrap.innerHTML = Object.entries(groups).map(([cat, items]) => `
-        <div>
-          <h5 style="margin:6px 0;">${cat}</h5>
-          ${items.map(t => `
-            <label class="option">
-              <span>${t.name}</span>
-              <span>${currency(t.price)} <input type="checkbox" value="${t.name}" data-price="${t.price}" ${buildState.toppings.has(t.name)?'checked':''}></span>
-            </label>
-          `).join('')}
-        </div>
-      `).join('');
-
-      // Handlers
-      sizeWrap.querySelectorAll('input[name="size"]').forEach(r=>r.addEventListener('change', e=>{
-        buildState.size = MENU.builder.sizes.find(s=>s.id===e.target.value); updateLivePrice();
-      }));
-      crustWrap.querySelectorAll('input[name="crust"]').forEach(r=>r.addEventListener('change', e=>{
-        buildState.crust = MENU.builder.crusts.find(c=>c.id===e.target.value); updateLivePrice();
-      }));
-      toppingWrap.querySelectorAll('input[type="checkbox"]').forEach(c=>c.addEventListener('change', e=>{
-        const v = e.target.value; if (e.target.checked) buildState.toppings.add(v); else buildState.toppings.delete(v); updateLivePrice();
-      }));
-    }
-
-    function calcPizzaPrice() {
-      const base = buildState.size.price + buildState.crust.price;
-      const tops = [...buildState.toppings].reduce((sum, name) => {
-        const t = MENU.builder.toppings.find(x => x.name === name);
-        return sum + (t ? t.price : 0);
-      }, 0);
-      return +(base + tops).toFixed(2);
-    }
-
-    function updateLivePrice() {
-      livePrice.textContent = currency(calcPizzaPrice() * buildState.qty);
-    }
-
-    // Qty in modal
-    document.getElementById('qtyMinus').addEventListener('click', ()=>{ buildState.qty=Math.max(1, buildState.qty-1); qtyOutput.value=buildState.qty; updateLivePrice(); });
-    document.getElementById('qtyPlus').addEventListener('click', ()=>{ buildState.qty++; qtyOutput.value=buildState.qty; updateLivePrice(); });
-
-    // Open/close modal
-    document.getElementById('buildPizzaBtn').addEventListener('click', ()=>{
-      renderBuilder(); updateLivePrice(); modal.showModal();
-    });
-    document.getElementById('closeModal').addEventListener('click', ()=> modal.close());
-
-    // Add pizza
-    document.getElementById('addPizzaBtn').addEventListener('click', ()=>{
-      const unit = calcPizzaPrice();
-      const meta = `${buildState.size.name}, ${buildState.crust.name}${buildState.toppings.size?`, ${[...buildState.toppings].join(', ')}`:''}`;
-      addToCart({ name: 'Custom Pizza', unitPrice: unit, qty: buildState.qty, meta });
-      // reset qty only, keep selections
-      buildState.qty = 1; qtyOutput.value = 1; updateLivePrice(); modal.close();
-    });
-
-    // ---------- Discount ----------
-    const range = document.getElementById('discountRange');
-    range.addEventListener('input', ()=>{
-      state.discountPct = +range.value; persist(); renderAll();
-      document.getElementById('discountLabel').textContent = `${state.discountPct}%`;
-    });
-
-    // ---------- Checkout / Reset ----------
-    document.getElementById('checkoutBtn').addEventListener('click', checkout);
-    document.getElementById('checkoutBtn2').addEventListener('click', checkout);
-
-    function resetAll(){ state.cart = []; state.discountPct = 0; persist(); renderAll(); }
-    document.getElementById('resetBtn').addEventListener('click', resetAll);
-    document.getElementById('resetBtn2').addEventListener('click', resetAll);
-
-    // ---------- History ----------
-    function renderHistory(){
-      const list = document.getElementById('historyList');
-      if (!list) return;
-      if (!state.history || state.history.length === 0) {
-        list.innerHTML = '<div class="muted">No past orders yet. Checkout to save one.</div>';
-        return;
-      }
-      list.innerHTML = state.history.map(h => `
-        <article class="card">
-          <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
-            <div>
-              <div><strong>${new Date(h.id).toLocaleString()}</strong></div>
-              <div class="small">${h.items.length} item(s) • Discount: ${h.discountPct}%</div>
-            </div>
-            <div><strong>${currency(h.total)}</strong></div>
-          </div>
-          <details class="small" style="margin-top:6px;">
-            <summary>View items</summary>
-            <ul style="margin:6px 0 0 16px;">
-              ${h.items.map(i=>`<li>${i.qty}× ${i.name}${i.meta?` <span class=small>(${i.meta})</span>`:''} — ${currency(i.lineTotal)}</li>`).join('')}
-            </ul>
-          </details>
-          <div class="toolrow" style="justify-content:flex-end;">
-            <button class="btn" data-reorder="${h.id}">Reorder</button>
-            <button class="btn ghost" data-delete="${h.id}">Delete</button>
-          </div>
-        </article>
-      `).join('');
-
-      // attach handlers
-      list.querySelectorAll('[data-reorder]').forEach(btn=>btn.addEventListener('click',()=>{
-        const id = +btn.getAttribute('data-reorder');
-        const h = state.history.find(x=>x.id===id); if(!h) return;
-        h.items.forEach(it => addToCart({ name: it.name, unitPrice: it.unit, qty: it.qty, meta: it.meta }));
-        alert('Items added back to cart from history.');
-      }));
-      list.querySelectorAll('[data-delete]').forEach(btn=>btn.addEventListener('click',()=>{
-        const id = +btn.getAttribute('data-delete');
-        state.history = state.history.filter(x=>x.id!==id); persistHistory(); renderHistory();
-      }));
-    }
-    const clearBtn = document.getElementById('clearHistoryBtn');
-    if (clearBtn) clearBtn.addEventListener('click', ()=>{ if(confirm('Clear all saved orders?')){ state.history=[]; persistHistory(); renderHistory(); }});
-
-    // ---------- Tabs ----------
-    const tabButtons = document.querySelectorAll('[data-tab]');
-    tabButtons.forEach(b=>b.addEventListener('click', ()=>{
-      const t = b.getAttribute('data-tab');
-      document.getElementById('tab-summary').hidden = t!=='summary';
-      document.getElementById('tab-history').hidden = t!=='history';
-      tabButtons.forEach(x=>x.setAttribute('aria-selected', String(x===b)));
-    }));
-    document.getElementById('resetBtn2').addEventListener('click', resetAll);
-
-    // ---------- Init ----------
-    // Theme init
-    const themeBtn = document.getElementById('themeBtn');
-    function applyTheme(t){
-      document.documentElement.setAttribute('data-theme', t);
-      localStorage.setItem('pizza_theme', t);
-      themeBtn.textContent = t==='dark' ? '☀️ Light' : '🌙 Dark';
-      themeBtn.setAttribute('aria-pressed', t==='dark');
-    }
-    const savedTheme = localStorage.getItem('pizza_theme') || 'light';
-    applyTheme(savedTheme);
-    themeBtn.addEventListener('click', ()=>{
-      const next = (localStorage.getItem('pizza_theme')||'light') === 'light' ? 'dark' : 'light';
-      applyTheme(next);
-    });
-
-    renderCards();
-    renderAll();
-  </script>
-</body>
-</html>
+      <div class="item-box">
+        Specialty Deal — $1000
+        <button onclick="addToOrder('Ge
