@@ -98,6 +98,10 @@
     @media (max-width:700px){ .two-col{ grid-template-columns:1fr; } }
     .option{ display:flex; justify-content:space-between; align-items:center; padding:10px 12px; border:1px solid var(--border); border-radius:12px; background:var(--card); }
     .toppings{ display:grid; grid-template-columns:repeat(auto-fill,minmax(180px,1fr)); gap:8px; }
+
+    /* Ingredients list */
+    .ing-list{ display:grid; grid-template-columns:1fr auto; gap:8px; }
+    .ing-actions{ display:flex; gap:8px; justify-content:flex-end; }
   </style>
 </head>
 <body>
@@ -173,6 +177,7 @@
           <div class="tabs" role="tablist" aria-label="Order panels">
             <button class="btn" data-tab="summary" aria-selected="true">🧾 Summary</button>
             <button class="btn" data-tab="history" aria-selected="false">📜 History</button>
+            <button class="btn" data-tab="ingredients" aria-selected="false">🧺 Ingredients</button>
           </div>
 
           <!-- SUMMARY TAB -->
@@ -204,9 +209,25 @@
 
           <!-- HISTORY TAB -->
           <div id="tab-history" role="tabpanel" hidden>
+            <div class="summary" style="gap:8px; margin-bottom:8px;">
+              <div class="row"><span>Orders served today</span><strong id="ordersToday">0</strong></div>
+              <div class="row"><span>Orders served overall</span><strong id="ordersOverall">0</strong></div>
+            </div>
             <div id="historyList" class="summary" style="gap:12px;"></div>
             <div class="right-actions" style="margin-top:12px;">
               <button class="btn ghost" id="clearHistoryBtn">Clear History</button>
+            </div>
+          </div>
+
+          <!-- INGREDIENTS TAB -->
+          <div id="tab-ingredients" role="tabpanel" hidden>
+            <div class="small muted" style="margin-bottom:6px;">Auto-aggregated from your current cart using each pizza's recipe and custom toppings.</div>
+            <div id="ingredientList" class="order-card" style="padding:12px;">
+              <div class="muted">No ingredients yet. Add items to the cart.</div>
+            </div>
+            <div class="ing-actions" style="margin-top:10px;">
+              <button class="btn" id="copyIngBtn">Copy List</button>
+              <button class="btn" id="exportIngBtn">Export CSV</button>
             </div>
           </div>
         </div>
@@ -325,11 +346,27 @@
       }
     };
 
+    // Recipe map with quantified ingredients per pizza. Keys must match menu IDs.
+    // Use ingredient names from builder; synonyms are normalized in aggregation.
+    const RECIPE_MAP = {
+      // Classic
+      'cl-margh': { 'Mozzarella':2, 'Tomato Sauce':1, 'Pizza Cheese':1, 'Dough':1 },
+      'cl-pepp' : { 'Pepperoni':2, 'Tomato Sauce':1, 'Pizza Cheese':1, 'Dough':1 },
+      'cl-salami': { 'Salami':2, 'Tomato Sauce':1, 'Pizza Cheese':1, 'Dough':1 },
+      'cl-hamche': { 'Ham':2, 'Tomato Sauce':1, 'Pizza Cheese':1, 'Dough':1 },
+      // Specialty
+      'sp-veg'  : { 'Black Olive':2, 'Bell Pepper':2, 'Tomato Sauce':1, 'Pizza Cheese':1, 'Dough':1 },
+      'sp-haw'  : { 'Pineapple':2, 'Ham':1, 'Tomato Sauce':1, 'Pizza Cheese':1, 'Dough':1 },
+      'sp-diav' : { 'Pepperoni':1, 'Black Olive':1, 'Jalapeño':1, 'Tomato Sauce':1, 'Pizza Cheese':1, 'Dough':1 },
+      // Extras
+      'ex-bread': { 'Flour':1, 'Yeast':1, 'Olive Oil':1 },
+    };
+
     const currency = n => `$${n.toFixed(2)}`;
 
     // ---------- State ----------
-    const STATE_KEY = 'pizza_calc_state_v4';
-    const HIST_KEY  = 'pizza_order_history_v4';
+    const STATE_KEY = 'pizza_calc_state_v5';
+    const HIST_KEY  = 'pizza_order_history_v5';
     const state = { cart: [], discountPct: 0, history: [] };
     try {
       const saved = JSON.parse(localStorage.getItem(STATE_KEY) || '{}');
@@ -381,7 +418,7 @@
         card.querySelector('[data-add]').addEventListener('click',()=>{
           const id = card.querySelector('[data-add]').getAttribute('data-add');
           const item = allItems.find(i=>i.id===id);
-          addToCart({ name:item.name, unitPrice:item.price, qty:count, type:item.type });
+          addToCart({ id:item.id, name:item.name, unitPrice:item.price, qty:count, type:item.type });
         });
       });
     }
@@ -396,7 +433,7 @@
         <div class="cart-item">
           <div>
             <div><strong>${l.name}</strong></div>
-            <div class="small">${currency(l.unitPrice)} each</div>
+            <div class="small">${currency(l.unitPrice)} each${l.meta?` • ${l.meta}`:''}</div>
           </div>
           <div class="qty">
             <button data-dec="${idx}">−</button>
@@ -406,15 +443,15 @@
             <div><strong>${currency(l.unitPrice*l.qty)}</strong></div>
         </div>`).join('');
 
-      cart.querySelectorAll('[data-inc]').forEach(b=>b.addEventListener('click',()=>{ const i=+b.getAttribute('data-inc'); state.cart[i].qty++; persist(); renderCart(); renderTotals(); }));
-      cart.querySelectorAll('[data-dec]').forEach(b=>b.addEventListener('click',()=>{ const i=+b.getAttribute('data-dec'); state.cart[i].qty--; if(state.cart[i].qty<=0) state.cart.splice(i,1); persist(); renderCart(); renderTotals(); }));
+      cart.querySelectorAll('[data-inc]').forEach(b=>b.addEventListener('click',()=>{ const i=+b.getAttribute('data-inc'); state.cart[i].qty++; persist(); renderCart(); renderTotals(); renderIngredients(); }));
+      cart.querySelectorAll('[data-dec]').forEach(b=>b.addEventListener('click',()=>{ const i=+b.getAttribute('data-dec'); state.cart[i].qty--; if(state.cart[i].qty<=0) state.cart.splice(i,1); persist(); renderCart(); renderTotals(); renderIngredients(); }));
     }
 
     function addToCart(line){
-      const key = `${line.name}|${line.unitPrice}|${line.type||''}`;
-      const found = state.cart.find(l => `${l.name}|${l.unitPrice}|${l.type||''}` === key);
+      const key = `${line.id||line.name}|${line.unitPrice}|${line.type||''}`;
+      const found = state.cart.find(l => `${l.id||l.name}|${l.unitPrice}|${l.type||''}` === key && (l.meta||'') === (line.meta||''));
       if (found) found.qty += line.qty; else state.cart.push(line);
-      persist(); renderCart(); renderTotals();
+      persist(); renderCart(); renderTotals(); renderIngredients();
     }
 
     // ---------- Promotions ----------
@@ -481,7 +518,16 @@
     range.addEventListener('input', ()=>{ state.discountPct = +range.value; persist(); renderTotals(); discountLabel.textContent = `${state.discountPct}%`; });
 
     // ---------- History ----------
+    function ordersServedCounters(){
+      const todayStr = new Date().toDateString();
+      const today = state.history.filter(h=> new Date(h.id).toDateString() === todayStr).length;
+      const overall = state.history.length;
+      document.getElementById('ordersToday').textContent = today;
+      document.getElementById('ordersOverall').textContent = overall;
+    }
+
     function renderHistory(){
+      ordersServedCounters();
       const list = document.getElementById('historyList');
       if (!state.history.length){ list.innerHTML = '<div class="muted">No past orders yet. Checkout to save one.</div>'; return; }
       list.innerHTML = state.history.map(h=>`
@@ -509,21 +555,24 @@
       list.querySelectorAll('[data-reorder]').forEach(btn=>btn.addEventListener('click',()=>{
         const id = +btn.getAttribute('data-reorder');
         const h = state.history.find(x=>x.id===id); if(!h) return;
-        h.items.forEach(it => addToCart({ name: it.name, unitPrice: it.unit, qty: it.qty, meta: it.meta || null }));
+        h.items.forEach(it => addToCart({ id: it.id || null, name: it.name, unitPrice: it.unit, qty: it.qty, meta: it.meta || null }));
       }));
       list.querySelectorAll('[data-delete]').forEach(btn=>btn.addEventListener('click',()=>{
         const id = +btn.getAttribute('data-delete');
         state.history = state.history.filter(x=>x.id!==id); persistHistory(); renderHistory();
       }));
     }
-    document.getElementById('clearHistoryBtn').addEventListener('click',()=>{ if(confirm('Clear all saved orders?')){ state.history=[]; persistHistory(); renderHistory(); } });
+    document.getElementById('clearHistoryBtn').addEventListener('click',()=>{ if(confirm('Clear all saved orders?')){ state.history=[]; persistHistory(); renderHistory(); ordersServedCounters(); } });
 
     // ---------- Tabs ----------
     const tabButtons = document.querySelectorAll('[data-tab]');
     function selectTab(which){
       document.getElementById('tab-summary').hidden = which!== 'summary';
       document.getElementById('tab-history').hidden = which!== 'history';
+      document.getElementById('tab-ingredients').hidden = which!== 'ingredients';
       tabButtons.forEach(b=>b.setAttribute('aria-selected', String(b.getAttribute('data-tab')===which)));
+      if (which==='ingredients') renderIngredients();
+      if (which==='history') ordersServedCounters();
     }
     tabButtons.forEach(b=>b.addEventListener('click',()=>selectTab(b.getAttribute('data-tab'))));
 
@@ -577,9 +626,97 @@
     document.getElementById('closeModal').addEventListener('click',()=> modal.close());
     document.getElementById('addPizzaBtn').addEventListener('click',()=>{
       const unit = calcPizzaPrice();
-      const meta = `${buildState.size.name}, ${buildState.crust.name}${buildState.toppings.size?`, ${[...buildState.toppings].join(', ')}`:''}`;
-      addToCart({ name:'Custom Pizza', unitPrice:unit, qty:buildState.qty, meta, type:'pizza' });
+      const metaTops = buildState.toppings.size?`, ${[...buildState.toppings].join(', ')}`:'';
+      const meta = `${buildState.size.name}, ${buildState.crust.name}${metaTops}`;
+      addToCart({ id:'custom', name:'Custom Pizza', unitPrice:unit, qty:buildState.qty, meta, type:'pizza' });
       buildState.qty = 1; qtyOutput.value = 1; updateLivePrice(); modal.close();
+    });
+
+    // ---------- Ingredients Aggregation ----------
+    function parseCustomToppings(meta){
+      // meta format: "Size, Crust, topping1, topping2, ..."
+      if(!meta) return [];
+      const parts = meta.split(',').map(s=>s.trim());
+      return parts.slice(2); // skip size & crust
+    }
+
+    function aggregateIngredients(){
+      const tally = {};
+      const add = (name, n=1)=>{ if(!name) return; tally[name] = (tally[name]||0)+n; };
+
+      // Normalize incoming ingredient names to builder names
+      const normalize = (name)=>{
+        const map = {
+          'Olive':'Black Olive',
+          'Olives':'Black Olive',
+          'Jalapeno':'Jalapeño',
+          'Bell Pepper Slice':'Bell Pepper',
+          'Margarita':'Margherita', // label-only; not an ingredient
+        };
+        return map[name] || name;
+      };
+
+      // Dough expansion per unit
+      const addDough = (units)=>{
+        add('Olive Oil', 1*units);
+        add('Flour', 1*units);
+        add('Yeast', 1*units);
+      };
+
+      // Helper to process a recipe dictionary into tally with quantity multiplier
+      const applyRecipe = (recipeDict, qty)=>{
+        Object.entries(recipeDict).forEach(([ing,count])=>{
+          if (ing === 'Dough') { addDough(count*qty); }
+          else { add(normalize(ing), count*qty); }
+        });
+      };
+
+      state.cart.forEach(line=>{
+        if(line.type==='pizza' && line.id && RECIPE_MAP[line.id]){
+          applyRecipe(RECIPE_MAP[line.id], line.qty);
+        } else if(line.name==='Custom Pizza'){
+          // For customs: each selected topping = 1 unit, plus 1 dough per pizza
+          const tops = parseCustomToppings(line.meta).map(normalize);
+          tops.forEach(ing=> add(ing, line.qty));
+          addDough(1*line.qty);
+          // Add base sauce + cheese if present in meta keywords
+          // (Optional behavior can be adjusted) – here we assume Tomato Sauce + Pizza Cheese by default
+          add('Tomato Sauce', 1*line.qty);
+          add('Pizza Cheese', 1*line.qty);
+        } else if(line.id && RECIPE_MAP[line.id]){
+          applyRecipe(RECIPE_MAP[line.id], line.qty);
+        }
+      });
+      return tally;
+    }
+
+    function renderIngredients(){
+      const wrap = document.getElementById('ingredientList');
+      const tally = aggregateIngredients();
+      const entries = Object.entries(tally).sort((a,b)=> a[0].localeCompare(b[0]));
+      if(entries.length===0){ wrap.innerHTML = '<div class="muted">No ingredients yet. Add items to the cart.</div>'; return; }
+      wrap.innerHTML = entries.map(([name,count])=>`<div class="ing-list"><div>${name}</div><div><strong>x${count}</strong></div></div>`).join('');
+    }
+
+    // Copy / Export actions
+    document.getElementById('copyIngBtn').addEventListener('click',()=>{
+      const tally = aggregateIngredients();
+      const txt = Object.entries(tally).sort((a,b)=>a[0].localeCompare(b[0])).map(([n,c])=>`- ${n} x${c}`).join('\n');
+      navigator.clipboard.writeText(txt).then(()=>{
+        alert('Ingredients copied to clipboard!');
+      });
+    });
+
+    document.getElementById('exportIngBtn').addEventListener('click',()=>{
+      const tally = aggregateIngredients();
+      const rows = [['Ingredient','Count'], ...Object.entries(tally).sort((a,b)=>a[0].localeCompare(b[0]))];
+      const csv = rows.map(r=> r.map(x=>`"${String(x).replaceAll('"','""')}"`).join(',')).join('\n');
+      const blob = new Blob([csv], {type:'text/csv'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = 'ingredients.csv';
+      document.body.appendChild(a); a.click(); a.remove();
+      URL.revokeObjectURL(url);
     });
 
     // ---------- Discount & Tabs ----------
@@ -594,7 +731,7 @@
       const total = +(subtotal - manual - promo.discount).toFixed(2);
       const entry = {
         id: Date.now(),
-        items: state.cart.map(l=>({ name:l.name, qty:l.qty, unit:l.unitPrice, meta:l.meta||null, lineTotal:+(l.unitPrice*l.qty).toFixed(2) })),
+        items: state.cart.map(l=>({ id: l.id || null, name:l.name, qty:l.qty, unit:l.unitPrice, meta:l.meta||null, lineTotal:+(l.unitPrice*l.qty).toFixed(2) })),
         discountPct: state.discountPct,
         subtotal:+subtotal.toFixed(2),
         discount: manual + promo.discount,
@@ -602,9 +739,9 @@
       };
       state.history.unshift(entry); persistHistory();
       state.cart = []; state.discountPct = 0; persist();
-      renderAll(); selectTab('history');
+      renderAll(); selectTab('history'); ordersServedCounters();
     }
-    function resetAll(){ state.cart = []; state.discountPct = 0; persist(); renderAll(); }
+    function resetAll(){ state.cart = []; state.discountPct = 0; persist(); renderAll(); renderIngredients(); }
 
     document.getElementById('checkoutBtn').addEventListener('click', checkout);
     document.getElementById('checkoutBtn2').addEventListener('click', checkout);
