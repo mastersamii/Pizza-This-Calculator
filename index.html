@@ -111,7 +111,7 @@
         <div class="logo" aria-hidden="true"></div>
         <div>
           <h1>Pizza This — Order Calculator</h1>
-          <div class="muted">Build pizzas, add deals & sides, apply discounts, and get an exact total.</div>
+          <div class="muted">Pick pizzas, add deals & sides, apply discounts, and get an exact total.</div>
         </div>
       </div>
       <div class="toolrow">
@@ -135,13 +135,7 @@
       <section class="panel">
         <h2>Menu</h2>
         <div class="content">
-          <div class="section">
-            <div class="toolrow" style="justify-content:space-between;align-items:center">
-              <h3 style="margin:0">Build Your Pizza</h3>
-              <button class="btn" id="buildPizzaBtn">Customize + Add</button>
-            </div>
-            <div class="muted" style="margin-top:6px">Choose size, crust, and toppings. Price updates live.</div>
-          </div>
+          <!-- Build Your Pizza REMOVED -->
 
           <div class="section">
             <h3 style="margin:0 0 8px 0">Classic Pizzas</h3>
@@ -182,6 +176,23 @@
 
           <!-- SUMMARY TAB -->
           <div id="tab-summary" role="tabpanel">
+            <!-- Fulfillment -->
+            <div class="option" style="margin-bottom:10px;">
+              <div>
+                <div><strong>Fulfillment</strong></div>
+                <div class="small">City $50 · Sandy $100 · Paleto $150</div>
+              </div>
+              <div style="display:flex; gap:10px; align-items:center;">
+                <label><input type="radio" name="fulfill" value="pickup"> Pickup</label>
+                <label><input type="radio" name="fulfill" value="delivery"> Delivery</label>
+                <select id="zoneSelect" style="margin-left:6px;">
+                  <option value="city">City</option>
+                  <option value="sandy">Sandy</option>
+                  <option value="paleto">Paleto</option>
+                </select>
+              </div>
+            </div>
+
             <div id="cart" class="order-card">
               <div class="cart-item muted">Your order is empty. Add a pizza or extra to get started.</div>
             </div>
@@ -195,6 +206,7 @@
 
             <div class="summary" style="margin-top:12px;">
               <div class="row"><span>Subtotal</span><strong id="subtotal">$0.00</strong></div>
+              <div class="row" id="deliveryRow" style="display:none;"><span>Delivery Fee</span><strong id="deliveryFee">$0.00</strong></div>
               <div class="row"><span>Discount</span><strong id="discount">-$0.00</strong></div>
               <div class="row"><span>Promotions</span><strong id="promotions">-$0.00</strong></div>
               <div class="row total"><span>Total</span><strong id="total">$0.00</strong></div>
@@ -221,7 +233,7 @@
 
           <!-- INGREDIENTS TAB -->
           <div id="tab-ingredients" role="tabpanel" hidden>
-            <div class="small muted" style="margin-bottom:6px;">Auto-aggregated from your current cart using each pizza's recipe and custom toppings.</div>
+            <div class="small muted" style="margin-bottom:6px;">Auto-aggregated from your current cart using each pizza's recipe and your bundle selections.</div>
             <div id="ingredientList" class="order-card" style="padding:12px;">
               <div class="muted">No ingredients yet. Add items to the cart.</div>
             </div>
@@ -235,54 +247,13 @@
     </div>
   </div>
 
-  <!-- Build Pizza Modal -->
-  <dialog id="pizzaModal">
+  <!-- Combo Selector Modal -->
+  <dialog id="comboModal">
     <div class="modal-header">
-      <strong>Build Your Pizza</strong>
-      <button class="btn" id="closeModal" aria-label="Close">✕</button>
+      <strong>Choose Pizzas for Bundle</strong>
+      <button class="btn" id="closeCombo" aria-label="Close">✕</button>
     </div>
-    <div class="modal-body">
-      <div class="two-col">
-        <div>
-          <h4 style="margin:0 0 8px 0;">Size</h4>
-          <div id="sizeOptions"></div>
-        </div>
-        <div>
-          <h4 style="margin:0 0 8px 0;">Crust</h4>
-          <div id="crustOptions"></div>
-        </div>
-      </div>
-
-      <div>
-        <h4 style="margin:0 0 8px 0;">Toppings <span class="small">(priced per item)</span></h4>
-        <div class="toppings" id="toppingOptions"></div>
-      </div>
-
-      <div class="two-col">
-        <div class="option">
-          <div>
-            <div><strong>Quantity</strong></div>
-            <div class="small">How many of this custom pizza?</div>
-          </div>
-          <div class="qty">
-            <button id="qtyMinus">−</button>
-            <output id="qtyOutput">1</output>
-            <button id="qtyPlus">+</button>
-          </div>
-        </div>
-        <div class="option">
-          <div>
-            <div><strong>Current Price</strong></div>
-            <div class="small">Auto-updates as you change options</div>
-          </div>
-          <div><strong id="livePrice">$0.00</strong></div>
-        </div>
-      </div>
-
-      <div class="toolrow" style="justify-content:flex-end;">
-        <button class="btn" id="addPizzaBtn">Add to Order</button>
-      </div>
-    </div>
+    <div class="modal-body" id="comboBody"></div>
   </dialog>
 
   <script>
@@ -300,14 +271,14 @@
         { id: 'sp-diav',  name: '🌶️ Diavola',      price: 250, type:'pizza' },
       ],
       deals: [
-        { id: 'dl-classic', name: 'Get Stuffed — Classic',   price: 800, type:'deal' },
-        { id: 'dl-special', name: 'Get Stuffed — Specialty', price: 1000, type:'deal' },
+        { id: 'dl-classic', name: 'Get Stuffed — Classic',   price: 800, type:'deal', pizzasIncluded: 0, allow:'classic' },
+        { id: 'dl-special', name: 'Get Stuffed — Specialty', price: 1000, type:'deal', pizzasIncluded: 0, allow:'specialty' },
       ],
       bundles: [
-        { id: 'bd-medium',      name: '🍕 Medium Pizza Meal — 1 Classic + 4 Drinks',      price: 240, type:'bundle' },
-        { id: 'bd-medium-spec', name: '🍕 Medium Pizza Meal — 1 Specialty + 4 Drinks',    price: 290, type:'bundle' },
-        { id: 'bd-large',       name: '🍕 Large Pizza Meal — 2 Classic + 8 Drinks',       price: 450, type:'bundle' },
-        { id: 'bd-large-spec',  name: '🍕 Large Pizza Meal — 2 Specialty + 8 Drinks',     price: 500, type:'bundle' },
+        { id: 'bd-medium',      name: '🍕 Medium Pizza Meal — 1 Classic + 4 Drinks',   price: 240, type:'bundle', pizzasIncluded:1, allow:'classic' },
+        { id: 'bd-medium-spec', name: '🍕 Medium Pizza Meal — 1 Specialty + 4 Drinks', price: 290, type:'bundle', pizzasIncluded:1, allow:'specialty' },
+        { id: 'bd-large',       name: '🍕 Large Pizza Meal — 2 Classic + 8 Drinks',    price: 450, type:'bundle', pizzasIncluded:2, allow:'classic' },
+        { id: 'bd-large-spec',  name: '🍕 Large Pizza Meal — 2 Specialty + 8 Drinks',  price: 500, type:'bundle', pizzasIncluded:2, allow:'specialty' },
       ],
       extras: [
         { id: 'ex-bread', name: '🧄 Breadsticks', price: 50, type:'extra' },
@@ -317,39 +288,9 @@
         { id: 'ex-beer',  name: '🍺 Beer',        price: 18.50, type:'extra' },
         { id: 'ex-lunch', name: '🍱 Lunch Box',   price: 360, type:'extra' },
       ],
-      builder: {
-        sizes: [
-          { id: 'sz-s',  name: 'Small 10"',  price: 120 },
-          { id: 'sz-m',  name: 'Medium 12"', price: 160 },
-          { id: 'sz-l',  name: 'Large 14"',  price: 200 },
-          { id: 'sz-xl', name: 'XL 16"',     price: 240 },
-        ],
-        crusts: [
-          { id: 'cr-hand', name: 'Hand Tossed', price: 0 },
-          { id: 'cr-thin', name: 'Thin',        price: 10 },
-          { id: 'cr-deep', name: 'Deep Dish',   price: 25 },
-          { id: 'cr-gf',   name: 'Gluten Free', price: 30 },
-        ],
-        toppings: [
-          { name: 'Pepperoni',   price: 8,  cat: 'Meats' },
-          { name: 'Salami',      price: 8,  cat: 'Meats' },
-          { name: 'Ham',         price: 8,  cat: 'Meats' },
-          { name: 'Pineapple',   price: 6,  cat: 'Veggies' },
-          { name: 'Jalapeño',    price: 6,  cat: 'Veggies' },
-          { name: 'Bell Pepper', price: 5,  cat: 'Veggies' },
-          { name: 'Black Olive', price: 8,  cat: 'Veggies' },
-          { name: 'Pizza Cheese', price: 4, cat: 'Cheeses' },
-          { name: 'Mozzarella',   price: 10, cat: 'Cheeses' },
-          { name: 'Tomato Sauce', price: 10, cat: 'Pantry' },
-          { name: 'Olive Oil',    price: 8,  cat: 'Pantry' },
-          { name: 'Yeast',        price: 10, cat: 'Pantry' },
-          { name: 'Flour',        price: 6,  cat: 'Pantry' },
-        ],
-      }
     };
 
     // Recipe map with quantified ingredients per pizza. Keys must match menu IDs.
-    // Use ingredient names from builder; synonyms are normalized in aggregation.
     const RECIPE_MAP = {
       // Classic
       'cl-margh': { 'Mozzarella':2, 'Tomato Sauce':1, 'Pizza Cheese':1, 'Dough':1 },
@@ -367,20 +308,41 @@
     const currency = n => `$${n.toFixed(2)}`;
 
     // ---------- State ----------
-    const STATE_KEY = 'pizza_calc_state_v5';
+    const STATE_KEY = 'pizza_calc_state_v7';
     const HIST_KEY  = 'pizza_order_history_v5';
-    const state = { cart: [], discountPct: 0, history: [] };
+
+    const state = {
+      cart: [],
+      discountPct: 0,
+      history: [],
+      fulfillment: 'pickup',       // 'pickup' | 'delivery'
+      deliveryZone: 'city'         // 'city' | 'sandy' | 'paleto'
+    };
+
     try {
       const saved = JSON.parse(localStorage.getItem(STATE_KEY) || '{}');
       const savedHist = JSON.parse(localStorage.getItem(HIST_KEY) || '[]');
       if (Array.isArray(savedHist)) state.history = savedHist;
-      if (saved && Array.isArray(saved.cart)) { state.cart = saved.cart; state.discountPct = saved.discountPct || 0; }
+      if (saved) {
+        if (Array.isArray(saved.cart)) state.cart = saved.cart;
+        if (typeof saved.discountPct === 'number') state.discountPct = saved.discountPct;
+        if (saved.fulfillment) state.fulfillment = saved.fulfillment;
+        if (saved.deliveryZone) state.deliveryZone = saved.deliveryZone;
+      }
     } catch {}
-    const persist = () => localStorage.setItem(STATE_KEY, JSON.stringify({ cart: state.cart, discountPct: state.discountPct }));
+
+    const persist = () =>
+      localStorage.setItem(STATE_KEY, JSON.stringify({
+        cart: state.cart,
+        discountPct: state.discountPct,
+        fulfillment: state.fulfillment,
+        deliveryZone: state.deliveryZone
+      }));
     const persistHistory = () => localStorage.setItem(HIST_KEY, JSON.stringify(state.history));
 
     // ---------- Render Helpers ----------
     function cardHTML(item){
+      const needsCombo = (item.pizzasIncluded||0) > 0;
       return `
         <article class="card">
           <h3>${item.name}</h3>
@@ -392,9 +354,17 @@
               <button aria-label="increase">+</button>
             </div>
           </div>
+          ${needsCombo ? `<button class="btn" data-customize="${item.id}">Choose Pizzas</button>` : ``}
           <button class="btn" data-add="${item.id}">Add</button>
         </article>`;
     }
+
+    function findMenuItem(id){
+      const pools = [MENU.classic, MENU.specialty, MENU.deals, MENU.bundles, MENU.extras];
+      for (const pool of pools){ const f = pool.find(x=>x.id===id); if (f) return f; }
+      return null;
+    }
+
     function renderCards(){
       const classic = document.getElementById('classic');
       const specialty = document.getElementById('specialty');
@@ -410,17 +380,37 @@
       extras.innerHTML = make(MENU.extras);
 
       const allItems = [...MENU.classic, ...MENU.specialty, ...MENU.deals, ...MENU.bundles, ...MENU.extras];
+
       document.querySelectorAll('.cards .card').forEach(card=>{
         let count = 1;
         const out = card.querySelector('output');
         const minus = card.querySelector('button[aria-label="decrease"]');
         const plus  = card.querySelector('button[aria-label="increase"]');
-        minus.addEventListener('click',()=>{ count=Math.max(1,count-1); out.value=count; });
-        plus.addEventListener('click',()=>{ count++; out.value=count; });
+        minus?.addEventListener('click',()=>{ count=Math.max(1,count-1); out.value=count; });
+        plus?.addEventListener('click',()=>{ count++; out.value=count; });
+
+        const id = card.querySelector('[data-add]')?.getAttribute('data-add');
+        const item = allItems.find(i=>i.id===id);
+
+        // Customize (for bundles with pizzas)
+        const customizeBtn = card.querySelector('[data-customize]');
+        customizeBtn?.addEventListener('click', ()=>{
+          openComboModal(item, count, (comboIds, comboNames)=>{
+            // No immediate add; just close — user can press Add next (or we can add automatically)
+          }, /*autoAdd*/ false);
+        });
+
+        // Add
         card.querySelector('[data-add]').addEventListener('click',()=>{
-          const id = card.querySelector('[data-add]').getAttribute('data-add');
-          const item = allItems.find(i=>i.id===id);
-          addToCart({ id:item.id, name:item.name, unitPrice:item.price, qty:count, type:item.type });
+          const needsCombo = (item.pizzasIncluded||0)>0;
+          if (needsCombo){
+            openComboModal(item, count, (comboIds, comboNames)=>{
+              const meta = `Pizzas: ${comboNames.join(' + ')}`;
+              addToCart({ id:item.id, name:item.name, unitPrice:item.price, qty:count, type:item.type, meta, combo: comboIds });
+            }, /*autoAdd*/ true);
+          } else {
+            addToCart({ id:item.id, name:item.name, unitPrice:item.price, qty:count, type:item.type });
+          }
         });
       });
     }
@@ -442,7 +432,7 @@
             <output>${l.qty}</output>
             <button data-inc="${idx}">+</button>
           </div>
-            <div><strong>${currency(l.unitPrice*l.qty)}</strong></div>
+          <div><strong>${currency(l.unitPrice*l.qty)}</strong></div>
         </div>`).join('');
 
       cart.querySelectorAll('[data-inc]').forEach(b=>b.addEventListener('click',()=>{ const i=+b.getAttribute('data-inc'); state.cart[i].qty++; persist(); renderCart(); renderTotals(); renderIngredients(); }));
@@ -450,11 +440,33 @@
     }
 
     function addToCart(line){
-      const key = `${line.id||line.name}|${line.unitPrice}|${line.type||''}`;
-      const found = state.cart.find(l => `${l.id||l.name}|${l.unitPrice}|${l.type||''}` === key && (l.meta||'') === (line.meta||''));
+      const key = `${line.id||line.name}|${line.unitPrice}|${line.type||''}|${(line.meta||'')}`;
+      const found = state.cart.find(l => `${l.id||l.name}|${l.unitPrice}|${l.type||''}|${(l.meta||'')}` === key && JSON.stringify(l.combo||[])===JSON.stringify(line.combo||[]));
       if (found) found.qty += line.qty; else state.cart.push(line);
       persist(); renderCart(); renderTotals(); renderIngredients();
     }
+
+    // ---------- Fulfillment ----------
+    const ZONE_FEES = { city:50, sandy:100, paleto:150 };
+
+    function renderFulfillment(){
+      const radios = document.querySelectorAll('input[name="fulfill"]');
+      radios.forEach(r => r.checked = (r.value === state.fulfillment));
+      const zoneSel = document.getElementById('zoneSelect');
+      zoneSel.value = state.deliveryZone;
+      zoneSel.disabled = state.fulfillment !== 'delivery';
+    }
+
+    document.querySelectorAll('input[name="fulfill"]').forEach(r=>{
+      r.addEventListener('change', e=>{
+        state.fulfillment = e.target.value;
+        persist(); renderFulfillment(); renderTotals();
+      });
+    });
+    document.getElementById('zoneSelect').addEventListener('change', e=>{
+      state.deliveryZone = e.target.value;
+      persist(); renderTotals();
+    });
 
     // ---------- Promotions ----------
     function computePromotions(){
@@ -462,18 +474,15 @@
       let notes = [];
       let discount = 0;
 
-      // 1) Mon–Wed: Buy one pizza, get one half off (applies to pizzas incl. custom)
+      // 1) Mon–Wed: Buy one pizza, get one half off (applies to pizzas)
       if (day>=1 && day<=3){
         const unitPrices = [];
         state.cart.forEach(l=>{
-          if (l.type === 'pizza' || l.name === 'Custom Pizza'){
-            for(let i=0;i<l.qty;i++) unitPrices.push(l.unitPrice);
-          }
+          if (l.type === 'pizza'){ for(let i=0;i<l.qty;i++) unitPrices.push(l.unitPrice); }
         });
         if (unitPrices.length >= 2){
-          unitPrices.sort((a,b)=>b-a); // high -> low
+          unitPrices.sort((a,b)=>b-a);
           for (let i=0;i<unitPrices.length; i+=2){
-            const p1 = unitPrices[i];
             const p2 = unitPrices[i+1];
             if (typeof p2 === 'number') discount += p2 * 0.5;
           }
@@ -504,12 +513,18 @@
       const subtotal = state.cart.reduce((s,l)=>s + l.unitPrice*l.qty, 0);
       const manual = +(subtotal * (state.discountPct/100)).toFixed(2);
       const promo = computePromotions();
-      const total = subtotal - manual - promo.discount;
+      const deliveryFee = state.fulfillment==='delivery' ? (ZONE_FEES[state.deliveryZone]||0) : 0;
+      const total = subtotal + deliveryFee - manual - promo.discount;
+
       document.getElementById('subtotal').textContent = currency(subtotal);
       document.getElementById('discount').textContent = `-${currency(manual)}`;
       document.getElementById('promotions').textContent = `-${currency(promo.discount)}`;
       document.getElementById('total').textContent = currency(total);
       document.getElementById('promoNotes').textContent = promo.notes.join(' • ');
+
+      const row = document.getElementById('deliveryRow');
+      if (deliveryFee>0){ row.style.display='flex'; document.getElementById('deliveryFee').textContent = currency(deliveryFee); }
+      else { row.style.display='none'; document.getElementById('deliveryFee').textContent = currency(0); }
     }
 
     // ---------- Discount slider ----------
@@ -556,7 +571,7 @@
       list.querySelectorAll('[data-reorder]').forEach(btn=>btn.addEventListener('click',()=>{
         const id = +btn.getAttribute('data-reorder');
         const h = state.history.find(x=>x.id===id); if(!h) return;
-        h.items.forEach(it => addToCart({ id: it.id || null, name: it.name, unitPrice: it.unit, qty: it.qty, meta: it.meta || null }));
+        h.items.forEach(it => addToCart({ id: it.id || null, name: it.name, unitPrice: it.unit, qty: it.qty, meta: it.meta || null, combo: it.combo || null }));
       }));
       list.querySelectorAll('[data-delete]').forEach(btn=>btn.addEventListener('click',()=>{
         const id = +btn.getAttribute('data-delete');
@@ -577,106 +592,74 @@
     }
     tabButtons.forEach(b=>b.addEventListener('click',()=>selectTab(b.getAttribute('data-tab'))));
 
-    // ---------- Build Pizza Modal ----------
-    const modal = document.getElementById('pizzaModal');
-    const sizeWrap = document.getElementById('sizeOptions');
-    const crustWrap = document.getElementById('crustOptions');
-    const toppingWrap = document.getElementById('toppingOptions');
-    const livePrice = document.getElementById('livePrice');
-    const qtyOutput = document.getElementById('qtyOutput');
+    // ---------- Combo Selector ----------
+    const comboModal = document.getElementById('comboModal');
+    const comboBody  = document.getElementById('comboBody');
+    document.getElementById('closeCombo').addEventListener('click', ()=> comboModal.close());
 
-    const buildState = { size: MENU.builder.sizes[2], crust: MENU.builder.crusts[0], toppings: new Set(), qty: 1 };
-
-    function renderBuilder(){
-      sizeWrap.innerHTML = MENU.builder.sizes.map(s=>`
-        <label class="option"><span>${s.name}</span>
-          <span>${currency(s.price)} <input type="radio" name="size" value="${s.id}" ${s.id===buildState.size.id?'checked':''}></span>
-        </label>`).join('');
-      crustWrap.innerHTML = MENU.builder.crusts.map(c=>`
-        <label class="option"><span>${c.name}</span>
-          <span>${c.price?`+${currency(c.price)}`:'Included'} <input type="radio" name="crust" value="${c.id}" ${c.id===buildState.crust.id?'checked':''}></span>
-        </label>`).join('');
-
-      const groups = MENU.builder.toppings.reduce((acc,t)=>{ (acc[t.cat] ||= []).push(t); return acc; }, {});
-      toppingWrap.innerHTML = Object.entries(groups).map(([cat,items])=>`
-        <div>
-          <h5 style="margin:6px 0">${cat}</h5>
-          ${items.map(t=>`
-            <label class="option"><span>${t.name}</span>
-              <span>${currency(t.price)} <input type="checkbox" value="${t.name}" ${buildState.toppings.has(t.name)?'checked':''}></span>
-            </label>`).join('')}
-        </div>`).join('');
-
-      sizeWrap.querySelectorAll('input[name="size"]').forEach(r=>r.addEventListener('change',e=>{ buildState.size = MENU.builder.sizes.find(s=>s.id===e.target.value); updateLivePrice(); }));
-      crustWrap.querySelectorAll('input[name="crust"]').forEach(r=>r.addEventListener('change',e=>{ buildState.crust = MENU.builder.crusts.find(c=>c.id===e.target.value); updateLivePrice(); }));
-      toppingWrap.querySelectorAll('input[type="checkbox"]').forEach(c=>c.addEventListener('change',e=>{ const v=e.target.value; if(e.target.checked) buildState.toppings.add(v); else buildState.toppings.delete(v); updateLivePrice(); }));
+    function getPizzaPool(allow){
+      if (allow==='classic') return MENU.classic;
+      if (allow==='specialty') return MENU.specialty;
+      return [...MENU.classic, ...MENU.specialty];
     }
 
-    function calcPizzaPrice(){
-      const base = buildState.size.price + buildState.crust.price;
-      const tops = [...buildState.toppings].reduce((s,name)=>{
-        const t = MENU.builder.toppings.find(x=>x.name===name); return s + (t?t.price:0);
-      },0);
-      return +(base + tops).toFixed(2);
-    }
-    function updateLivePrice(){ livePrice.textContent = currency(calcPizzaPrice() * buildState.qty); }
+    function openComboModal(item, qty, onAdd, autoAdd){
+      comboBody.innerHTML = '';
+      const pool = getPizzaPool(item.allow||'classic');
+      const selects = [];
+      for (let i=0;i<(item.pizzasIncluded||0);i++){
+        const sel = document.createElement('select');
+        sel.style.width='100%';
+        pool.forEach(p=>{
+          const opt = document.createElement('option');
+          opt.value=p.id; opt.textContent=p.name.replace(/^[^ ]+ /,''); // strip emoji for clarity
+          sel.appendChild(opt);
+        });
+        const row = document.createElement('div');
+        row.className='option';
+        row.innerHTML = `<div><strong>Pizza ${i+1}</strong><div class="small">${item.allow==='classic'?'Classic':'Specialty'}</div></div>`;
+        row.appendChild(sel);
+        comboBody.appendChild(row);
+        selects.push(sel);
+      }
+      const addBtn = document.createElement('button');
+      addBtn.className='btn primary';
+      addBtn.textContent = 'Add to Cart';
+      addBtn.addEventListener('click',()=>{
+        const ids = selects.map(s=>s.value);
+        const names = ids.map(id=> (findMenuItem(id)||{}).name?.replace(/^[^ ]+ /,'') || id);
+        onAdd(ids, names);
+        comboModal.close();
+      });
+      comboBody.appendChild(addBtn);
 
-    document.getElementById('qtyMinus').addEventListener('click',()=>{ buildState.qty=Math.max(1,buildState.qty-1); qtyOutput.value=buildState.qty; updateLivePrice(); });
-    document.getElementById('qtyPlus').addEventListener('click',()=>{ buildState.qty++; qtyOutput.value=buildState.qty; updateLivePrice(); });
-    document.getElementById('buildPizzaBtn').addEventListener('click',()=>{ renderBuilder(); updateLivePrice(); modal.showModal(); });
-    document.getElementById('closeModal').addEventListener('click',()=> modal.close());
-    document.getElementById('addPizzaBtn').addEventListener('click',()=>{
-      const unit = calcPizzaPrice();
-      const metaTops = buildState.toppings.size?`, ${[...buildState.toppings].join(', ')}`:'';
-      const meta = `${buildState.size.name}, ${buildState.crust.name}${metaTops}`;
-      addToCart({ id:'custom', name:'Custom Pizza', unitPrice:unit, qty:buildState.qty, meta, type:'pizza' });
-      buildState.qty = 1; qtyOutput.value = 1; updateLivePrice(); modal.close();
-    });
+      comboModal.showModal();
+
+      // If triggered by "Add", we still require a click to confirm choices.
+      if (autoAdd){ /* user will click "Add to Cart" in modal */ }
+    }
 
     // ---------- Ingredients Aggregation ----------
-    function parseCustomToppings(meta){
-      if(!meta) return [];
-      const parts = meta.split(',').map(s=>s.trim());
-      return parts.slice(2); // skip size & crust
-    }
-
     function aggregateIngredients(){
       const tally = {};
       const add = (name, n=1)=>{ if(!name) return; tally[name] = (tally[name]||0)+n; };
 
-      const normalize = (name)=>{
-        const map = {
-          'Olive':'Black Olive',
-          'Olives':'Black Olive',
-          'Jalapeno':'Jalapeño',
-          'Bell Pepper Slice':'Bell Pepper',
-          'Margarita':'Margherita',
-        };
-        return map[name] || name;
-      };
-
-      const addDough = (units)=>{
-        add('Olive Oil', 1*units);
-        add('Flour', 1*units);
-        add('Yeast', 1*units);
-      };
-
+      const addDough = (units)=>{ add('Olive Oil', 1*units); add('Flour', 1*units); add('Yeast', 1*units); };
       const applyRecipe = (recipeDict, qty)=>{
         Object.entries(recipeDict).forEach(([ing,count])=>{
           if (ing === 'Dough') { addDough(count*qty); }
-          else { add(normalize(ing), count*qty); }
+          else { add(ing, count*qty); }
         });
       };
 
       state.cart.forEach(line=>{
         if(line.type==='pizza' && line.id && RECIPE_MAP[line.id]){
           applyRecipe(RECIPE_MAP[line.id], line.qty);
-        } else if(line.name==='Custom Pizza'){
-          const tops = parseCustomToppings(line.meta).map(normalize);
-          tops.forEach(ing=> add(ing, line.qty));
-          addDough(1*line.qty);
-          add('Tomato Sauce', 1*line.qty);
-          add('Pizza Cheese', 1*line.qty);
+        } else if ((line.type==='bundle' || line.type==='deal') && Array.isArray(line.combo) && line.combo.length){
+          // For bundles, add ingredients of each selected pizza per unit of bundle
+          line.combo.forEach(pid=>{
+            if (RECIPE_MAP[pid]) applyRecipe(RECIPE_MAP[pid], line.qty);
+          });
         } else if(line.id && RECIPE_MAP[line.id]){
           applyRecipe(RECIPE_MAP[line.id], line.qty);
         }
@@ -696,9 +679,7 @@
     document.getElementById('copyIngBtn').addEventListener('click',()=>{
       const tally = aggregateIngredients();
       const txt = Object.entries(tally).sort((a,b)=>a[0].localeCompare(b[0])).map(([n,c])=>`- ${n} x${c}`).join('\n');
-      navigator.clipboard.writeText(txt).then(()=>{
-        alert('Ingredients copied to clipboard!');
-      });
+      navigator.clipboard.writeText(txt).then(()=> alert('Ingredients copied to clipboard!'));
     });
 
     document.getElementById('exportIngBtn').addEventListener('click',()=>{
@@ -714,7 +695,7 @@
     });
 
     // ---------- Discount & Tabs ----------
-    function renderAll(){ renderCards(); renderCart(); renderTotals(); renderDiscount(); renderHistory(); }
+    function renderAll(){ renderCards(); renderCart(); renderFulfillment(); renderTotals(); renderDiscount(); renderHistory(); }
 
     // ---------- Checkout / Reset ----------
     function checkout(){
@@ -722,17 +703,20 @@
       const subtotal = state.cart.reduce((s,l)=>s + l.unitPrice*l.qty, 0);
       const manual = +(subtotal * (state.discountPct/100)).toFixed(2);
       const promo = computePromotions();
-      const total = +(subtotal - manual - promo.discount).toFixed(2);
+      const deliveryFee = state.fulfillment==='delivery' ? (ZONE_FEES[state.deliveryZone]||0) : 0;
+      const total = +(subtotal + deliveryFee - manual - promo.discount).toFixed(2);
       const entry = {
         id: Date.now(),
-        items: state.cart.map(l=>({ id: l.id || null, name:l.name, qty:l.qty, unit:l.unitPrice, meta:l.meta||null, lineTotal:+(l.unitPrice*l.qty).toFixed(2) })),
+        items: state.cart.map(l=>({ id: l.id || null, name:l.name, qty:l.qty, unit:l.unitPrice, meta:l.meta||null, combo:l.combo||null, lineTotal:+(l.unitPrice*l.qty).toFixed(2) })),
         discountPct: state.discountPct,
         subtotal:+subtotal.toFixed(2),
-        discount: manual + promo.discount,
+        deliveryFee,
+        promoDiscount: promo.discount,
+        manualDiscount: manual,
         total
       };
       state.history.unshift(entry); persistHistory();
-      state.cart = []; state.discountPct = 0; persist();
+      // Keep cart on checkout (do NOT clear)
       renderAll(); selectTab('history'); ordersServedCounters();
     }
     function resetAll(){ state.cart = []; state.discountPct = 0; persist(); renderAll(); renderIngredients(); }
