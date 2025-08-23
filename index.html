@@ -94,8 +94,6 @@
     dialog::backdrop{ background:rgba(0,0,0,.6); }
     .modal-header{ display:flex; align-items:center; justify-content:space-between; padding:16px 18px; border-bottom:1px solid var(--border); }
     .modal-body{ padding:16px; display:grid; gap:18px; }
-    .two-col{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }
-    @media (max-width:700px){ .two-col{ grid-template-columns:1fr; } }
     .option{ display:flex; justify-content:space-between; align-items:center; padding:10px 12px; border:1px solid var(--border); border-radius:12px; background:var(--card); }
 
     /* Selector grid for pizzas/drinks */
@@ -284,9 +282,9 @@
         { id: 'sp-diav',  name: '🌶️ Diavola',      price: 250, type:'pizza' },
       ],
       deals: [
-        // Get Stuffed now requires 4 pizza selections
-        { id: 'dl-classic', name: 'Get Stuffed — Classic',   price: 800, type:'deal',   pizzasIncluded:4, allow:'classic',  drinksIncluded:0 },
-        { id: 'dl-special', name: 'Get Stuffed — Specialty', price: 1000, type:'deal',  pizzasIncluded:4, allow:'specialty',drinksIncluded:0 },
+        // Get Stuffed: 4 pizzas + 16 drinks
+        { id: 'dl-classic', name: 'Get Stuffed — Classic',   price: 800, type:'deal',   pizzasIncluded:4, allow:'classic',   drinksIncluded:16 },
+        { id: 'dl-special', name: 'Get Stuffed — Specialty', price: 1000, type:'deal',  pizzasIncluded:4, allow:'specialty', drinksIncluded:16 },
       ],
       bundles: [
         { id: 'bd-medium',      name: '🍕 Medium Pizza Meal — 1 Classic + 4 Drinks',   price: 240, type:'bundle', pizzasIncluded:1, allow:'classic',   drinksIncluded:4 },
@@ -322,7 +320,7 @@
     const currency = n => `$${n.toFixed(2)}`;
 
     // ---------- State ----------
-    const STATE_KEY = 'pizza_calc_state_v8';
+    const STATE_KEY = 'pizza_calc_state_v9';
     const HIST_KEY  = 'pizza_order_history_v5';
 
     const state = {
@@ -377,8 +375,11 @@
               <button aria-label="increase">+</button>
             </div>
           </div>
-          ${needsCombo ? `<button class="btn" data-customize="${item.id}">Choose${item.pizzasIncluded?` Pizzas`:''}${item.drinksIncluded?` & Drinks`:''}</button>` : ``}
-          <button class="btn" data-add="${item.id}">Add</button>
+          ${
+            needsCombo
+              ? `<button class="btn" data-wizard="${item.id}">Choose &amp; Add</button>`
+              : `<button class="btn" data-add="${item.id}">Add</button>`
+          }
         </article>`;
     }
 
@@ -406,19 +407,22 @@
         minus?.addEventListener('click',()=>{ count=Math.max(1,count-1); out.value=count; });
         plus?.addEventListener('click',()=>{ count++; out.value=count; });
 
-        const id = card.querySelector('[data-add]')?.getAttribute('data-add');
-        const item = allItems.find(i=>i.id===id);
+        // Wizard (for combos/bundles/deals)
+        const wizId = card.querySelector('[data-wizard]')?.getAttribute('data-wizard');
+        if (wizId){
+          const item = allItems.find(i=>i.id===wizId);
+          card.querySelector('[data-wizard]').addEventListener('click', ()=> openComboWizard(item, count));
+          return;
+        }
 
-        const customizeBtn = card.querySelector('[data-customize]');
-        customizeBtn?.addEventListener('click', ()=>{ openComboWizard(item, count, false); });
-
-        card.querySelector('[data-add]').addEventListener('click',()=>{
-          if ((item.pizzasIncluded||0) > 0 || (item.drinksIncluded||0) > 0){
-            openComboWizard(item, count, true); // require selections before adding
-          } else {
+        // Simple add (for single items)
+        const addId = card.querySelector('[data-add]')?.getAttribute('data-add');
+        if (addId){
+          const item = allItems.find(i=>i.id===addId);
+          card.querySelector('[data-add]').addEventListener('click',()=>{
             addToCart({ id:item.id, name:item.name, unitPrice:item.price, qty:count, type:item.type });
-          }
-        });
+          });
+        }
       });
     }
 
@@ -610,7 +614,7 @@
     const comboNext = document.getElementById('comboNext');
     document.getElementById('closeCombo').addEventListener('click', ()=> comboModal.close());
 
-    function openComboWizard(item, qty, fromAdd){
+    function openComboWizard(item, qty){
       const pizzasNeeded = item.pizzasIncluded || 0;
       const drinksNeeded = item.drinksIncluded || 0;
       const pizzaPool = getPizzaPool(item.allow);
@@ -618,7 +622,7 @@
 
       const pizzaCounts = {}; // id -> count
       const drinkCounts = {}; // id -> count
-      let step = pizzasNeeded>0 ? 0 : 1; // 0=pizzas, 1=drinks, 2=confirm
+      let step = pizzasNeeded>0 ? 0 : (drinksNeeded>0 ? 1 : 2); // 0=pizzas, 1=drinks, 2=confirm
 
       const renderSteps = ()=>{
         const parts = [];
@@ -629,7 +633,8 @@
       };
 
       const renderGrid = (pool, counts, needed, label)=>{
-        const remaining = needed - Object.values(counts).reduce((a,b)=>a+b,0);
+        const used = Object.values(counts).reduce((a,b)=>a+b,0);
+        const remaining = needed - used;
         comboTitle.textContent = `${label} — pick ${needed} (remaining ${Math.max(0,remaining)})`;
         comboContent.innerHTML = `
           <div class="selector-grid">
@@ -647,8 +652,8 @@
         comboContent.querySelectorAll('[data-plus]').forEach(btn=>{
           btn.addEventListener('click',()=>{
             const id = btn.getAttribute('data-plus');
-            const used = Object.values(counts).reduce((a,b)=>a+b,0);
-            if (used < needed){ counts[id]=(counts[id]||0)+1; comboContent.querySelector(`[data-out="${id}"]`).value = counts[id]; renderGrid(pool, counts, needed, label); }
+            const currentUsed = Object.values(counts).reduce((a,b)=>a+b,0);
+            if (currentUsed < needed){ counts[id]=(counts[id]||0)+1; comboContent.querySelector(`[data-out="${id}"]`).value = counts[id]; renderGrid(pool, counts, needed, label); }
           });
         });
         comboContent.querySelectorAll('[data-minus]').forEach(btn=>{
@@ -660,21 +665,22 @@
           });
         });
         comboPrev.style.display = step>0 ? 'inline-flex' : 'none';
-        comboNext.textContent = (remaining===0) ? (step===1 || (step===0 && drinksNeeded===0) ? 'Add to Cart' : 'Next') : 'Next';
+        comboNext.textContent = 'Next';
         comboNext.disabled = remaining>0;
       };
 
       const renderConfirm = ()=>{
         comboTitle.textContent = 'Confirm Selection';
-        const pizzaList = Object.entries(pizzaCounts).filter(([,c])=>c>0).map(([id,c])=>`${(findMenuItem(id)||{}).name?.replace(/^[^ ]+ /,'')||id} x${c}`);
-        const drinkList = Object.entries(drinkCounts).filter(([,c])=>c>0).map(([id,c])=>`${(findMenuItem(id)||{}).name?.replace(/^[^ ]+ /,'')||id} x${c}`);
+        const fmtName = (id)=> (findMenuItem(id)||{}).name?.replace(/^[^ ]+ /,'') || id;
+        const pizzaList = Object.entries(pizzaCounts).filter(([,c])=>c>0).map(([id,c])=>`${fmtName(id)} x${c}`);
+        const drinkList = Object.entries(drinkCounts).filter(([,c])=>c>0).map(([id,c])=>`${fmtName(id)} x${c}`);
         comboContent.innerHTML = `
           <div class="summary" style="gap:10px;">
             ${pizzaList.length?`<div><strong>Pizzas:</strong> ${pizzaList.join(', ')}</div>`:''}
             ${drinkList.length?`<div><strong>Drinks:</strong> ${drinkList.join(', ')}</div>`:''}
           </div>
         `;
-        comboPrev.style.display = (drinksNeeded>0) ? 'inline-flex' : (pizzasNeeded>0 ? 'inline-flex' : 'none');
+        comboPrev.style.display = (drinksNeeded>0 || pizzasNeeded>0) ? 'inline-flex' : 'none';
         comboNext.textContent = 'Add to Cart';
         comboNext.disabled = false;
       };
@@ -693,11 +699,15 @@
         } else {
           // Add to cart
           const pizzaIds = toArrayByCounts(pizzaCounts);
-          const pizzaNames = pizzaIds.map(id => (findMenuItem(id)||{}).name?.replace(/^[^ ]+ /,'') || id);
+          const fmtName = (id)=> (findMenuItem(id)||{}).name?.replace(/^[^ ]+ /,'') || id;
+          const pizzaNames = pizzaIds.map(fmtName);
           const drinksObj = Object.fromEntries(Object.entries(drinkCounts).filter(([,c])=>c>0));
-          const drinkParts = Object.entries(drinksObj).map(([id,c])=>`${(findMenuItem(id)||{}).name?.replace(/^[^ ]+ /,'')||id} x${c}`);
+          const drinkParts = Object.entries(drinksObj).map(([id,c])=>`${fmtName(id)} x${c}`);
           const metaParts = [];
-          if (pizzaNames.length) metaParts.push(`Pizzas: ${pizzaNames.reduce((acc,cur)=>{ const k=cur; acc[k]=(acc[k]||0)+1; return acc; },{}) && Object.entries(pizzaNames.reduce((a,n)=>(a[n]=(a[n]||0)+1,a),{})).map(([n,c])=>`${n} x${c}`).join(' + ')}`);
+          if (pizzaNames.length){
+            const counts = pizzaNames.reduce((a,n)=>(a[n]=(a[n]||0)+1,a),{});
+            metaParts.push(`Pizzas: ${Object.entries(counts).map(([n,c])=>`${n} x${c}`).join(' + ')}`);
+          }
           if (drinkParts.length) metaParts.push(`Drinks: ${drinkParts.join(', ')}`);
           const meta = metaParts.join(' • ');
 
@@ -718,8 +728,6 @@
 
       rerender();
       comboModal.showModal();
-
-      // If user clicked plain "Add", force them through wizard (fromAdd true) – handled above.
     }
 
     // ---------- Ingredients Aggregation ----------
@@ -739,6 +747,7 @@
         if(line.type==='pizza' && line.id && RECIPE_MAP[line.id]){
           applyRecipe(RECIPE_MAP[line.id], line.qty);
         } else if ((line.type==='bundle' || line.type==='deal') && Array.isArray(line.combo) && line.combo.length){
+          // Each selected pizza contributes its recipe per bundle qty
           line.combo.forEach(pid=>{
             if (RECIPE_MAP[pid]) applyRecipe(RECIPE_MAP[pid], line.qty);
           });
@@ -798,8 +807,12 @@
         total
       };
       state.history.unshift(entry); persistHistory();
-      // Keep cart on checkout
-      renderAll(); selectTab('history'); ordersServedCounters();
+      // Clear cart and keep Summary tab
+      state.cart = [];
+      state.discountPct = 0;
+      persist();
+      renderAll();
+      selectTab('summary');
     }
     function resetAll(){ state.cart = []; state.discountPct = 0; persist(); renderAll(); renderIngredients(); }
 
