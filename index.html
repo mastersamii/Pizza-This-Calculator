@@ -202,6 +202,19 @@
             </div>
 
             <div class="divider"></div>
+
+            <!-- Pizza Saver Sunday -->
+            <div class="option" id="saverSection" style="margin-bottom:10px;">
+              <div>
+                <div><strong>Pizza Saver Sunday</strong></div>
+                <div class="small" id="saverHelp">Each saver knocks $50 off (Sundays only)</div>
+              </div>
+              <div class="toolrow">
+                <span class="chip" id="saverChip">Savers: 0 (−$50 ea)</span>
+                <button class="btn" id="addSaverBtn">Add Pizza Saver</button>
+              </div>
+            </div>
+
             <div class="discount">
               <label for="discountRange">Discount</label>
               <div><span id="discountLabel" class="kbd">0%</span></div>
@@ -320,7 +333,7 @@
     const currency = n => `$${n.toFixed(2)}`;
 
     // ---------- State ----------
-    const STATE_KEY = 'pizza_calc_state_v9';
+    const STATE_KEY = 'pizza_calc_state_v10';
     const HIST_KEY  = 'pizza_order_history_v5';
 
     const state = {
@@ -328,7 +341,8 @@
       discountPct: 0,
       history: [],
       fulfillment: 'pickup',       // 'pickup' | 'delivery'
-      deliveryZone: 'city'         // 'city' | 'sandy' | 'paleto'
+      deliveryZone: 'city',        // 'city' | 'sandy' | 'paleto'
+      pizzaSavers: 0               // Sunday-only $50 off each
     };
 
     try {
@@ -340,6 +354,7 @@
         if (typeof saved.discountPct === 'number') state.discountPct = saved.discountPct;
         if (saved.fulfillment) state.fulfillment = saved.fulfillment;
         if (saved.deliveryZone) state.deliveryZone = saved.deliveryZone;
+        if (typeof saved.pizzaSavers === 'number') state.pizzaSavers = saved.pizzaSavers;
       }
     } catch {}
 
@@ -348,7 +363,8 @@
         cart: state.cart,
         discountPct: state.discountPct,
         fulfillment: state.fulfillment,
-        deliveryZone: state.deliveryZone
+        deliveryZone: state.deliveryZone,
+        pizzaSavers: state.pizzaSavers
       }));
     const persistHistory = () => localStorage.setItem(HIST_KEY, JSON.stringify(state.history));
 
@@ -484,6 +500,27 @@
       persist(); renderTotals();
     });
 
+    // ---------- Pizza Saver Sunday ----------
+    function isSunday(){ return new Date().getDay() === 0; }
+    function renderPizzaSaver(){
+      const chip = document.getElementById('saverChip');
+      chip.textContent = `Savers: ${state.pizzaSavers} (−$50 ea)`;
+      const addBtn = document.getElementById('addSaverBtn');
+      const help = document.getElementById('saverHelp');
+      if (isSunday()){
+        addBtn.disabled = false;
+        help.textContent = 'Each saver knocks $50 off (Sundays only)';
+      } else {
+        addBtn.disabled = true;
+        help.textContent = 'Unavailable today — only on Sundays';
+      }
+    }
+    document.getElementById('addSaverBtn').addEventListener('click', ()=>{
+      if (!isSunday()) return;
+      state.pizzaSavers += 1;
+      persist(); renderPizzaSaver(); renderTotals();
+    });
+
     // ---------- Promotions ----------
     function computePromotions(){
       const day = new Date().getDay(); // 0 Sun .. 6 Sat
@@ -518,6 +555,14 @@
           }
         }
       }
+
+      // 3) Sunday: Pizza Saver Sunday — $50 off per saver
+      if (day===0 && state.pizzaSavers>0){
+        const saverDiscount = 50 * state.pizzaSavers;
+        discount += saverDiscount;
+        notes.push(`Pizza Saver Sunday: ${state.pizzaSavers}×$50`);
+      }
+
       return { discount: +(discount.toFixed(2)), notes };
     }
 
@@ -691,13 +736,12 @@
         if (step>0){ step--; rerender(); }
       };
       comboNext.onclick = ()=>{
-        if (step===0){ // pizzas -> drinks or confirm
+        if (step===0){
           if (drinksNeeded>0){ step=1; rerender(); }
           else { step=2; rerender(); }
-        } else if (step===1){ // drinks -> confirm
+        } else if (step===1){
           step=2; rerender();
         } else {
-          // Add to cart
           const pizzaIds = toArrayByCounts(pizzaCounts);
           const fmtName = (id)=> (findMenuItem(id)||{}).name?.replace(/^[^ ]+ /,'') || id;
           const pizzaNames = pizzaIds.map(fmtName);
@@ -785,8 +829,8 @@
       URL.revokeObjectURL(url);
     });
 
-    // ---------- Discount & Tabs ----------
-    function renderAll(){ renderCards(); renderCart(); renderFulfillment(); renderTotals(); renderDiscount(); renderHistory(); }
+    // ---------- Discount, Saver & Tabs ----------
+    function renderAll(){ renderCards(); renderCart(); renderFulfillment(); renderPizzaSaver(); renderTotals(); renderDiscount(); renderHistory(); }
 
     // ---------- Checkout / Reset ----------
     function checkout(){
@@ -804,17 +848,25 @@
         deliveryFee,
         promoDiscount: promo.discount,
         manualDiscount: manual,
+        pizzaSavers: state.pizzaSavers,
         total
       };
       state.history.unshift(entry); persistHistory();
-      // Clear cart and keep Summary tab
+
+      // Clear cart, reset discounts & savers, keep Summary tab
       state.cart = [];
       state.discountPct = 0;
+      state.pizzaSavers = 0;
       persist();
       renderAll();
       selectTab('summary');
     }
-    function resetAll(){ state.cart = []; state.discountPct = 0; persist(); renderAll(); renderIngredients(); }
+    function resetAll(){
+      state.cart = [];
+      state.discountPct = 0;
+      state.pizzaSavers = 0;
+      persist(); renderAll(); renderIngredients();
+    }
 
     document.getElementById('checkoutBtn').addEventListener('click', checkout);
     document.getElementById('checkoutBtn2').addEventListener('click', checkout);
