@@ -139,8 +139,6 @@
       <section class="panel">
         <h2>Menu</h2>
         <div class="content">
-          <!-- Build Your Pizza REMOVED -->
-
           <div class="section">
             <h3 style="margin:0 0 8px 0">Classic Pizzas</h3>
             <div class="cards" id="classic"></div>
@@ -212,6 +210,8 @@
               <div class="toolrow">
                 <span class="chip" id="saverChip">Savers: 0 (−$50 ea)</span>
                 <button class="btn" id="addSaverBtn">Add Pizza Saver</button>
+                <button class="btn ghost" id="removeSaverBtn">Remove Saver</button>
+                <button class="btn ghost" id="clearSaverBtn">Clear</button>
               </div>
             </div>
 
@@ -317,16 +317,13 @@
 
     // Recipe map with quantified ingredients per pizza. Keys must match menu IDs.
     const RECIPE_MAP = {
-      // Classic
       'cl-margh': { 'Mozzarella':2, 'Tomato Sauce':1, 'Pizza Cheese':1, 'Dough':1 },
       'cl-pepp' : { 'Pepperoni':2, 'Tomato Sauce':1, 'Pizza Cheese':1, 'Dough':1 },
       'cl-salami': { 'Salami':2, 'Tomato Sauce':1, 'Pizza Cheese':1, 'Dough':1 },
       'cl-hamche': { 'Ham':2, 'Tomato Sauce':1, 'Pizza Cheese':1, 'Dough':1 },
-      // Specialty
       'sp-veg'  : { 'Black Olive':2, 'Bell Pepper':2, 'Tomato Sauce':1, 'Pizza Cheese':1, 'Dough':1 },
       'sp-haw'  : { 'Pineapple':2, 'Ham':1, 'Tomato Sauce':1, 'Pizza Cheese':1, 'Dough':1 },
       'sp-diav' : { 'Pepperoni':1, 'Black Olive':1, 'Jalapeño':1, 'Tomato Sauce':1, 'Pizza Cheese':1, 'Dough':1 },
-      // Extras
       'ex-bread': { 'Flour':1, 'Yeast':1, 'Olive Oil':1 },
     };
 
@@ -340,9 +337,9 @@
       cart: [],
       discountPct: 0,
       history: [],
-      fulfillment: 'pickup',       // 'pickup' | 'delivery'
-      deliveryZone: 'city',        // 'city' | 'sandy' | 'paleto'
-      pizzaSavers: 0               // Sunday-only $50 off each
+      fulfillment: 'pickup',
+      deliveryZone: 'city',
+      pizzaSavers: 0
     };
 
     try {
@@ -423,7 +420,6 @@
         minus?.addEventListener('click',()=>{ count=Math.max(1,count-1); out.value=count; });
         plus?.addEventListener('click',()=>{ count++; out.value=count; });
 
-        // Wizard (for combos/bundles/deals)
         const wizId = card.querySelector('[data-wizard]')?.getAttribute('data-wizard');
         if (wizId){
           const item = allItems.find(i=>i.id===wizId);
@@ -431,7 +427,6 @@
           return;
         }
 
-        // Simple add (for single items)
         const addId = card.querySelector('[data-add]')?.getAttribute('data-add');
         if (addId){
           const item = allItems.find(i=>i.id===addId);
@@ -506,7 +501,11 @@
       const chip = document.getElementById('saverChip');
       chip.textContent = `Savers: ${state.pizzaSavers} (−$50 ea)`;
       const addBtn = document.getElementById('addSaverBtn');
+      const rmBtn = document.getElementById('removeSaverBtn');
+      const clrBtn = document.getElementById('clearSaverBtn');
       const help = document.getElementById('saverHelp');
+
+      // Add allowed only on Sunday
       if (isSunday()){
         addBtn.disabled = false;
         help.textContent = 'Each saver knocks $50 off (Sundays only)';
@@ -514,11 +513,28 @@
         addBtn.disabled = true;
         help.textContent = 'Unavailable today — only on Sundays';
       }
+
+      // Remove/clear allowed any time if you have savers
+      const has = state.pizzaSavers > 0;
+      rmBtn.disabled = !has;
+      clrBtn.disabled = !has;
     }
     document.getElementById('addSaverBtn').addEventListener('click', ()=>{
       if (!isSunday()) return;
       state.pizzaSavers += 1;
       persist(); renderPizzaSaver(); renderTotals();
+    });
+    document.getElementById('removeSaverBtn').addEventListener('click', ()=>{
+      if (state.pizzaSavers > 0) {
+        state.pizzaSavers -= 1;
+        persist(); renderPizzaSaver(); renderTotals();
+      }
+    });
+    document.getElementById('clearSaverBtn').addEventListener('click', ()=>{
+      if (state.pizzaSavers > 0) {
+        state.pizzaSavers = 0;
+        persist(); renderPizzaSaver(); renderTotals();
+      }
     });
 
     // ---------- Promotions ----------
@@ -527,7 +543,7 @@
       let notes = [];
       let discount = 0;
 
-      // 1) Mon–Wed: Buy one pizza, get one half off (applies to pizzas)
+      // Mon–Wed: BOGO 50% on pizzas
       if (day>=1 && day<=3){
         const unitPrices = [];
         state.cart.forEach(l=>{ if (l.type === 'pizza'){ for(let i=0;i<l.qty;i++) unitPrices.push(l.unitPrice); } });
@@ -541,7 +557,7 @@
         }
       }
 
-      // 2) Thu–Sat: Free breadsticks with any Get Stuffed deal (max 4 free per order)
+      // Thu–Sat: Free breadsticks with any Get Stuffed deal (max 4 free per order)
       if (day>=4 && day<=6){
         const hasDealQty = state.cart.reduce((s,l)=> s + ((l.type==='deal')?l.qty:0), 0);
         if (hasDealQty>0){
@@ -556,7 +572,7 @@
         }
       }
 
-      // 3) Sunday: Pizza Saver Sunday — $50 off per saver
+      // Sunday: Pizza Saver Sunday — $50 off per saver
       if (day===0 && state.pizzaSavers>0){
         const saverDiscount = 50 * state.pizzaSavers;
         discount += saverDiscount;
@@ -791,7 +807,6 @@
         if(line.type==='pizza' && line.id && RECIPE_MAP[line.id]){
           applyRecipe(RECIPE_MAP[line.id], line.qty);
         } else if ((line.type==='bundle' || line.type==='deal') && Array.isArray(line.combo) && line.combo.length){
-          // Each selected pizza contributes its recipe per bundle qty
           line.combo.forEach(pid=>{
             if (RECIPE_MAP[pid]) applyRecipe(RECIPE_MAP[pid], line.qty);
           });
