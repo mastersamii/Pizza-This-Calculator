@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Pizza This Order Calculator</title>
+  <title>Pizza This — Order Calculator</title>
   <style>
     :root {
       /* Italian palette */
@@ -114,7 +114,7 @@
       <div class="brand">
         <div class="logo" aria-hidden="true"></div>
         <div>
-          <h1>Pizza This Order Calculator</h1>
+          <h1>Pizza This — Order Calculator</h1>
           <div class="muted">Pick pizzas, add deals & sides, apply discounts, and get an exact total.</div>
         </div>
       </div>
@@ -152,6 +152,12 @@
           <div class="section">
             <h3 style="margin:0 0 8px 0">Get Stuffed Deals</h3>
             <div class="cards" id="deals"></div>
+          </div>
+
+          <!-- NEW: Pizza Pack section -->
+          <div class="section">
+            <h3 style="margin:0 0 8px 0">Pizza Pack</h3>
+            <div class="cards" id="packs"></div>
           </div>
 
           <div class="section">
@@ -295,19 +301,29 @@
         { id: 'sp-diav',  name: '🌶️ Diavola',      price: 250, type:'pizza' },
       ],
       deals: [
-        // Get Stuffed: 4 pizzas + 16 drinks
         { id: 'dl-classic', name: 'Get Stuffed — Classic',   price: 800, type:'deal',   pizzasIncluded:4, allow:'classic',   drinksIncluded:16 },
         { id: 'dl-special', name: 'Get Stuffed — Specialty', price: 1000, type:'deal',  pizzasIncluded:4, allow:'specialty', drinksIncluded:16 },
       ],
+
+      // NEW: Pizza Pack section
+      packs: [
+        { id: 'bd-pack', name: '🍱 Pizza Pack', price: 700, type:'bundle',
+          pizzasIncluded:2, allow:'both', drinksIncluded:8,
+          surchargeSpecialty:50, includesLunchbox:true,
+          description:'2 classic pizzas + 8 drinks packed in your own Pizza This Lunchbox. First time includes the box.' },
+        { id: 'bd-pack-refill', name: '🍱 Pizza Pack Refill', price: 350, type:'bundle',
+          pizzasIncluded:2, allow:'both', drinksIncluded:8,
+          surchargeSpecialty:50, isRefill:true,
+          description:'Bring your box back and load it up again. Save $100 every time you refill the Pizza Pack. $50 extra for specialty pizzas.' },
+      ],
+
       bundles: [
         { id: 'bd-medium',      name: '🍕 Medium Pizza Meal — 1 Classic + 4 Drinks',   price: 240, type:'bundle', pizzasIncluded:1, allow:'classic',   drinksIncluded:4 },
         { id: 'bd-medium-spec', name: '🍕 Medium Pizza Meal — 1 Specialty + 4 Drinks', price: 340, type:'bundle', pizzasIncluded:1, allow:'specialty', drinksIncluded:4 },
         { id: 'bd-large',       name: '🍕 Large Pizza Meal — 2 Classic + 8 Drinks',    price: 450, type:'bundle', pizzasIncluded:2, allow:'classic',   drinksIncluded:8 },
         { id: 'bd-large-spec',  name: '🍕 Large Pizza Meal — 2 Specialty + 8 Drinks',  price: 550, type:'bundle', pizzasIncluded:2, allow:'specialty', drinksIncluded:8 },
-        // NEW: Pizza Pack & Refill (allows classic or specialty with $50 upcharge per specialty pizza)
-        { id: 'bd-pack', name: '🍱 Pizza Pack', price: 700, type:'bundle', pizzasIncluded:2, allow:'both', drinksIncluded:8, surchargeSpecialty:50, includesLunchbox:true, description:'2 classic pizzas + 8 drinks packed in your own Pizza This Lunchbox. First time includes the box.' },
-        { id: 'bd-pack-refill', name: '🍱 Pizza Pack Refill', price: 350, type:'bundle', pizzasIncluded:2, allow:'both', drinksIncluded:8, surchargeSpecialty:50, isRefill:true, description:'Bring your box back and load it up again. Save $100 every time you refill the Pizza Pack. $50 extra for specialty pizzas.' },
       ],
+
       extras: [
         { id: 'ex-bread', name: '🧄 Breadsticks', price: 50, type:'extra' },
         { id: 'ex-soda',  name: '🥤 Soda',        price: 40, type:'extra', isDrink:true },
@@ -370,7 +386,7 @@
 
     // ---------- Helpers ----------
     function findMenuItem(id){
-      const pools = [MENU.classic, MENU.specialty, MENU.deals, MENU.bundles, MENU.extras];
+      const pools = [MENU.classic, MENU.specialty, MENU.deals, MENU.packs, MENU.bundles, MENU.extras];
       for (const pool of pools){ const f = pool.find(x=>x.id===id); if (f) return f; }
       return null;
     }
@@ -407,6 +423,7 @@
       const classic = document.getElementById('classic');
       const specialty = document.getElementById('specialty');
       const deals = document.getElementById('deals');
+      const packs = document.getElementById('packs');      // NEW
       const bundles = document.getElementById('bundles');
       const extras = document.getElementById('extras');
 
@@ -414,10 +431,15 @@
       classic.innerHTML = make(MENU.classic);
       specialty.innerHTML = make(MENU.specialty);
       deals.innerHTML = make(MENU.deals);
+      packs.innerHTML = make(MENU.packs);                  // NEW
       bundles.innerHTML = make(MENU.bundles);
       extras.innerHTML = make(MENU.extras);
 
-      const allItems = [...MENU.classic, ...MENU.specialty, ...MENU.deals, ...MENU.bundles, ...MENU.extras];
+      const allItems = [
+        ...MENU.classic, ...MENU.specialty, ...MENU.deals,
+        ...MENU.packs,                                     // NEW
+        ...MENU.bundles, ...MENU.extras
+      ];
 
       document.querySelectorAll('.cards .card').forEach(card=>{
         let count = 1;
@@ -512,7 +534,6 @@
       const clrBtn = document.getElementById('clearSaverBtn');
       const help = document.getElementById('saverHelp');
 
-      // Add allowed only on Sunday
       if (isSunday()){
         addBtn.disabled = false;
         help.textContent = 'Each saver knocks $50 off (Sundays only)';
@@ -521,7 +542,6 @@
         help.textContent = 'Unavailable today — only on Sundays';
       }
 
-      // Remove/clear allowed any time if you have savers
       const has = state.pizzaSavers > 0;
       rmBtn.disabled = !has;
       clrBtn.disabled = !has;
@@ -787,17 +807,16 @@
           // Specialty upcharge for Pizza Pack / Refill when allowed 'both'
           let unitPrice = item.price;
           if (item.allow === 'both' && item.surchargeSpecialty) {
-          const specialtyCount = pizzaIds.filter(id => id.startsWith('sp-')).length;
+            const specialtyCount = pizzaIds.filter(id => id.startsWith('sp-')).length;
+            // Refill: flat $50 if ANY specialty is chosen
+            // First-time pack: $50 per specialty pizza
+            const up = item.isRefill
+              ? (specialtyCount > 0 ? item.surchargeSpecialty : 0)
+              : (specialtyCount * item.surchargeSpecialty);
 
-          // Refill: flat $50 if ANY specialty is chosen
-          // First-time pack: $50 per specialty pizza
-          const up = item.isRefill
-        ? (specialtyCount > 0 ? item.surchargeSpecialty : 0)
-        : (specialtyCount * item.surchargeSpecialty);
-
-        if (up > 0) metaParts.push(`Specialty upcharge +$${up} per pack`);
-        unitPrice = item.price + up;
-        }  
+            if (up > 0) metaParts.push(`Specialty upcharge +$${up} per pack`);
+            unitPrice = item.price + up;
+          }
 
           const meta = metaParts.join(' • ');
 
@@ -840,7 +859,6 @@
           line.combo.forEach(pid=>{
             if (RECIPE_MAP[pid]) applyRecipe(RECIPE_MAP[pid], line.qty);
           });
-          // Include Lunchbox in ingredient list when first Pizza Pack purchased
           if (line.id==='bd-pack') add('Lunch Box', line.qty);
         } else if(line.id && RECIPE_MAP[line.id]){
           applyRecipe(RECIPE_MAP[line.id], line.qty);
@@ -900,7 +918,6 @@
       };
       state.history.unshift(entry); persistHistory();
 
-      // Clear cart, reset discounts & savers, keep Summary tab
       state.cart = [];
       state.discountPct = 0;
       state.pizzaSavers = 0;
