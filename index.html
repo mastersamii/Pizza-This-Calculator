@@ -301,9 +301,12 @@
       ],
       bundles: [
         { id: 'bd-medium',      name: '🍕 Medium Pizza Meal — 1 Classic + 4 Drinks',   price: 240, type:'bundle', pizzasIncluded:1, allow:'classic',   drinksIncluded:4 },
-        { id: 'bd-medium-spec', name: '🍕 Medium Pizza Meal — 1 Specialty + 4 Drinks', price: 290, type:'bundle', pizzasIncluded:1, allow:'specialty', drinksIncluded:4 },
+        { id: 'bd-medium-spec', name: '🍕 Medium Pizza Meal — 1 Specialty + 4 Drinks', price: 340, type:'bundle', pizzasIncluded:1, allow:'specialty', drinksIncluded:4 },
         { id: 'bd-large',       name: '🍕 Large Pizza Meal — 2 Classic + 8 Drinks',    price: 450, type:'bundle', pizzasIncluded:2, allow:'classic',   drinksIncluded:8 },
-        { id: 'bd-large-spec',  name: '🍕 Large Pizza Meal — 2 Specialty + 8 Drinks',  price: 500, type:'bundle', pizzasIncluded:2, allow:'specialty', drinksIncluded:8 },
+        { id: 'bd-large-spec',  name: '🍕 Large Pizza Meal — 2 Specialty + 8 Drinks',  price: 550, type:'bundle', pizzasIncluded:2, allow:'specialty', drinksIncluded:8 },
+        // NEW: Pizza Pack & Refill (allows classic or specialty with $50 upcharge per specialty pizza)
+        { id: 'bd-pack', name: '🍱 Pizza Pack', price: 700, type:'bundle', pizzasIncluded:2, allow:'both', drinksIncluded:8, surchargeSpecialty:50, includesLunchbox:true, description:'2 classic pizzas + 8 drinks packed in your own Pizza This Lunchbox. First time includes the box.' },
+        { id: 'bd-pack-refill', name: '🍱 Pizza Pack Refill', price: 350, type:'bundle', pizzasIncluded:2, allow:'both', drinksIncluded:8, surchargeSpecialty:50, isRefill:true, description:'Bring your box back and load it up again. Save $100 every time you refill the Pizza Pack. $50 extra for specialty pizzas.' },
       ],
       extras: [
         { id: 'ex-bread', name: '🧄 Breadsticks', price: 50, type:'extra' },
@@ -372,7 +375,11 @@
       return null;
     }
     function getDrinkPool(){ return MENU.extras.filter(x=>x.isDrink); }
-    function getPizzaPool(allow){ return allow==='specialty' ? MENU.specialty : MENU.classic; }
+    function getPizzaPool(allow){
+      if (allow==='specialty') return MENU.specialty;
+      if (allow==='both') return [...MENU.classic, ...MENU.specialty];
+      return MENU.classic;
+    }
 
     // ---------- Cards ----------
     function cardHTML(item){
@@ -735,10 +742,16 @@
         const fmtName = (id)=> (findMenuItem(id)||{}).name?.replace(/^[^ ]+ /,'') || id;
         const pizzaList = Object.entries(pizzaCounts).filter(([,c])=>c>0).map(([id,c])=>`${fmtName(id)} x${c}`);
         const drinkList = Object.entries(drinkCounts).filter(([,c])=>c>0).map(([id,c])=>`${fmtName(id)} x${c}`);
+        const notes = [];
+        if (item.includesLunchbox) notes.push('Includes Lunchbox');
+        if (item.isRefill) notes.push('Refill price');
+        const info = (findMenuItem(item.id)?.description)||'';
         comboContent.innerHTML = `
           <div class="summary" style="gap:10px;">
             ${pizzaList.length?`<div><strong>Pizzas:</strong> ${pizzaList.join(', ')}</div>`:''}
             ${drinkList.length?`<div><strong>Drinks:</strong> ${drinkList.join(', ')}</div>`:''}
+            ${notes.length?`<div class="small muted">${notes.join(' • ')}</div>`:''}
+            ${info?`<div class="small muted">${info}</div>`:''}
           </div>
         `;
         comboPrev.style.display = (drinksNeeded>0 || pizzasNeeded>0) ? 'inline-flex' : 'none';
@@ -769,10 +782,27 @@
             metaParts.push(`Pizzas: ${Object.entries(counts).map(([n,c])=>`${n} x${c}`).join(' + ')}`);
           }
           if (drinkParts.length) metaParts.push(`Drinks: ${drinkParts.join(', ')}`);
+          if (item.includesLunchbox) metaParts.push('Includes Lunchbox');
+
+          // Specialty upcharge for Pizza Pack / Refill when allowed 'both'
+          let unitPrice = item.price;
+          if (item.allow === 'both' && item.surchargeSpecialty) {
+          const specialtyCount = pizzaIds.filter(id => id.startsWith('sp-')).length;
+
+          // Refill: flat $50 if ANY specialty is chosen
+          // First-time pack: $50 per specialty pizza
+          const up = item.isRefill
+        ? (specialtyCount > 0 ? item.surchargeSpecialty : 0)
+        : (specialtyCount * item.surchargeSpecialty);
+
+        if (up > 0) metaParts.push(`Specialty upcharge +$${up} per pack`);
+        unitPrice = item.price + up;
+        }  
+
           const meta = metaParts.join(' • ');
 
           addToCart({
-            id:item.id, name:item.name, unitPrice:item.price, qty:qty, type:item.type,
+            id:item.id, name:item.name, unitPrice, qty:qty, type:item.type,
             combo: pizzaIds, drinks: drinksObj, meta
           });
           comboModal.close();
@@ -781,7 +811,7 @@
 
       function rerender(){
         renderSteps();
-        if (step===0) renderGrid(pizzaPool, pizzaCounts, pizzasNeeded, (item.allow==='specialty'?'Specialty Pizzas':'Classic Pizzas'));
+        if (step===0) renderGrid(pizzaPool, pizzaCounts, pizzasNeeded, (item.allow==='specialty'?'Specialty Pizzas': (item.allow==='both' ? 'Classic or Specialty Pizzas' : 'Classic Pizzas')));
         else if (step===1) renderGrid(drinkPool, drinkCounts, drinksNeeded, 'Drinks');
         else renderConfirm();
       }
@@ -810,6 +840,8 @@
           line.combo.forEach(pid=>{
             if (RECIPE_MAP[pid]) applyRecipe(RECIPE_MAP[pid], line.qty);
           });
+          // Include Lunchbox in ingredient list when first Pizza Pack purchased
+          if (line.id==='bd-pack') add('Lunch Box', line.qty);
         } else if(line.id && RECIPE_MAP[line.id]){
           applyRecipe(RECIPE_MAP[line.id], line.qty);
         }
@@ -857,7 +889,7 @@
       const total = +(subtotal + deliveryFee - manual - promo.discount).toFixed(2);
       const entry = {
         id: Date.now(),
-        items: state.cart.map(l=>({ id: l.id || null, name:l.name, qty:l.qty, unit:l.unitPrice, meta:l.meta||null, combo:l.combo||null, drinks:l.drinks||null, lineTotal:+(l.unitPrice*l.qty).toFixed(2) })),
+        items: state.cart.map(l=>({ id: l.id || null, name: l.name, qty: l.qty, unit: l.unitPrice, meta: l.meta||null, combo: l.combo||null, drinks: l.drinks||null, lineTotal:+(l.unitPrice*l.qty).toFixed(2) })),
         discountPct: state.discountPct,
         subtotal:+subtotal.toFixed(2),
         deliveryFee,
