@@ -539,7 +539,7 @@
         help.textContent = 'Each saver knocks $50 off (Sundays only)';
       } else {
         addBtn.disabled = true;
-        help.textContent = 'Unavailable today — only on Sundays';
+        help.textContent = 'Unavailable today (Sundays only)';
       }
 
       const has = state.pizzaSavers > 0;
@@ -599,7 +599,7 @@
         }
       }
 
-      // Sunday: Pizza Saver Sunday — $50 off per saver
+      // Sunday: Pizza Saver Sunday $50 off per saver
       if (day===0 && state.pizzaSavers>0){
         const saverDiscount = 50 * state.pizzaSavers;
         discount += saverDiscount;
