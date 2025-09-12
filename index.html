@@ -106,6 +106,12 @@
     /* Ingredients list */
     .ing-list{ display:grid; grid-template-columns:1fr auto; gap:8px; }
     .ing-actions{ display:flex; gap:8px; justify-content:flex-end; }
+
+    /* Loyalty tray */
+    .punchtray{display:flex;gap:8px;flex-wrap:wrap}
+    .chipbox{display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:10px;background:var(--chip);border:1px dashed #cad0e4}
+    .chipbox.filled{background:repeating-conic-gradient(from 0deg, var(--green) 0 20%, #2c6d30 0 40%);border:none;color:#fff}
+    .chipbox.free{border:1px solid var(--green)}
   </style>
 </head>
 <body>
@@ -180,6 +186,8 @@
             <button class="btn" data-tab="summary" aria-selected="true">🧾 Summary</button>
             <button class="btn" data-tab="history" aria-selected="false">📜 History</button>
             <button class="btn" data-tab="ingredients" aria-selected="false">🧺 Ingredients</button>
+            <!-- NEW Loyalty tab -->
+            <button class="btn" data-tab="loyalty" aria-selected="false">⭐ Loyalty</button>
           </div>
 
           <!-- SUMMARY TAB -->
@@ -265,6 +273,68 @@
               <button class="btn" id="exportIngBtn">Export CSV</button>
             </div>
           </div>
+
+          <!-- LOYALTY TAB (NEW) -->
+          <div id="tab-loyalty" role="tabpanel" hidden>
+            <div class="option" style="margin-bottom:10px;">
+              <div>
+                <div><strong>Loyalty Manager</strong></div>
+                <div class="small">10 punches. 10th is free → Large Meal (2 pizzas + 8 drinks + 2 breadsticks).</div>
+                <div class="small" id="dpStatus">Double Punch Tuesday: auto all day (ACTIVE only on Tuesdays)</div>
+              </div>
+              <div style="display:grid;grid-template-columns:2fr 1fr 1fr;gap:8px;align-items:end;max-width:860px">
+                <div>
+                  <label class="small muted">Player / Citizen ID</label>
+                  <input id="loy-player" placeholder="citizen_123 or name" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:10px;background:#fff;color:var(--ink)" />
+                </div>
+                <button class="btn primary" id="loy-add">Add Punch</button>
+                <div style="text-align:right">
+                  <div class="small muted">Visit</div>
+                  <div class="toolrow" style="justify-content:flex-end">
+                    <span class="chip" id="visitInfo">#1 • 0 punched</span>
+                    <button class="btn" id="newVisitBtn" title="Start a new visit (resets per-visit limits)">New Visit</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="order-card" style="padding:12px;margin-bottom:10px;">
+              <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;">
+                <div>
+                  <div class="small muted">Punch Card</div>
+                  <div id="loy-tray" class="punchtray" aria-live="polite"></div>
+                </div>
+                <div class="toolrow">
+                  <button class="btn" id="loy-undo">-1 Punch</button>
+                  <button class="btn" id="loy-redeem">Redeem Reward → Pick Meal</button>
+                </div>
+              </div>
+              <div id="loy-status" class="small muted" style="margin-top:6px;">—</div>
+            </div>
+
+            <div class="order-card" style="padding:0;">
+              <div style="padding:12px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;gap:8px;">
+                <strong>Customers</strong>
+                <div class="small muted" id="loy-stats">Players: 0 • Rewards banked: 0</div>
+              </div>
+              <div style="padding:12px;">
+                <table style="width:100%;border-collapse:collapse">
+                  <thead>
+                    <tr><th style="text-align:left;padding:8px;border-bottom:1px solid var(--border)">Player</th>
+                        <th style="text-align:left;padding:8px;border-bottom:1px solid var(--border)">Punches</th>
+                        <th style="text-align:left;padding:8px;border-bottom:1px solid var(--border)">Rewards</th>
+                        <th style="text-align:left;padding:8px;border-bottom:1px solid var(--border)">Last</th>
+                        <th style="text-align:left;padding:8px;border-bottom:1px solid var(--border)"></th></tr>
+                  </thead>
+                  <tbody id="loy-body"></tbody>
+                </table>
+              </div>
+              <div style="padding:12px;border-top:1px solid var(--border);display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end">
+                <button class="btn" id="loy-export">Export JSON</button>
+              </div>
+            </div>
+          </div>
+          <!-- /LOYALTY TAB -->
         </div>
       </aside>
     </div>
@@ -687,13 +757,15 @@
       document.getElementById('tab-summary').hidden = which!== 'summary';
       document.getElementById('tab-history').hidden = which!== 'history';
       document.getElementById('tab-ingredients').hidden = which!== 'ingredients';
+      document.getElementById('tab-loyalty').hidden = which!== 'loyalty';
       tabButtons.forEach(b=>b.setAttribute('aria-selected', String(b.getAttribute('data-tab')===which)));
       if (which==='ingredients') renderIngredients();
       if (which==='history') ordersServedCounters();
+      if (which==='loyalty') loyaltyRenderAll();
     }
     tabButtons.forEach(b=>b.addEventListener('click',()=>selectTab(b.getAttribute('data-tab'))));
 
-    // ---------- Combo/Bundle Wizard (boxes, not dropdowns) ----------
+    // ---------- Combo/Bundle Wizard ----------
     const comboModal = document.getElementById('comboModal');
     const comboTitle = document.getElementById('comboTitle');
     const comboSteps = document.getElementById('comboSteps');
@@ -705,7 +777,7 @@
     function openComboWizard(item, qty){
       const pizzasNeeded = item.pizzasIncluded || 0;
       const drinksNeeded = item.drinksIncluded || 0;
-      const pizzaPool = getPizzaPool(item.allow);
+      const pizzaPool = getPizzaPool(item.allow || 'classic'); // reward allows 'both'
       const drinkPool = getDrinkPool();
 
       const pizzaCounts = {}; // id -> count
@@ -758,13 +830,11 @@
       };
 
       const renderConfirm = ()=>{
-        comboTitle.textContent = 'Confirm Selection';
+        comboTitle.textContent = item.name || 'Confirm Selection';
         const fmtName = (id)=> (findMenuItem(id)||{}).name?.replace(/^[^ ]+ /,'') || id;
         const pizzaList = Object.entries(pizzaCounts).filter(([,c])=>c>0).map(([id,c])=>`${fmtName(id)} x${c}`);
         const drinkList = Object.entries(drinkCounts).filter(([,c])=>c>0).map(([id,c])=>`${fmtName(id)} x${c}`);
         const notes = [];
-        if (item.includesLunchbox) notes.push('Includes Lunchbox');
-        if (item.isRefill) notes.push('Refill price');
         const info = (findMenuItem(item.id)?.description)||'';
         comboContent.innerHTML = `
           <div class="summary" style="gap:10px;">
@@ -802,29 +872,21 @@
             metaParts.push(`Pizzas: ${Object.entries(counts).map(([n,c])=>`${n} x${c}`).join(' + ')}`);
           }
           if (drinkParts.length) metaParts.push(`Drinks: ${drinkParts.join(', ')}`);
-          if (item.includesLunchbox) metaParts.push('Includes Lunchbox');
-
-          // Specialty upcharge for Pizza Pack / Refill when allowed 'both'
-          let unitPrice = item.price;
-          if (item.allow === 'both' && item.surchargeSpecialty) {
-            const specialtyCount = pizzaIds.filter(id => id.startsWith('sp-')).length;
-            // Refill: flat $50 if ANY specialty is chosen
-            // First-time pack: $50 per specialty pizza
-            const up = item.isRefill
-              ? (specialtyCount > 0 ? item.surchargeSpecialty : 0)
-              : (specialtyCount * item.surchargeSpecialty);
-
-            if (up > 0) metaParts.push(`Specialty upcharge +$${up} per pack`);
-            unitPrice = item.price + up;
-          }
 
           const meta = metaParts.join(' • ');
 
+          // Add chosen pizzas/drinks as a single free bundle line
           addToCart({
-            id:item.id, name:item.name, unitPrice, qty:qty, type:item.type,
-            combo: pizzaIds, drinks: drinksObj, meta
+            id:item.id||null,
+            name:item.name || '🎁 Loyalty Reward — Large Meal',
+            unitPrice: 0, qty: 1, type:'bundle',
+            combo: pizzaIds, drinks: drinksObj, meta: meta + ' • Loyalty free'
           });
+          // Plus 2 free breadsticks
+          addToCart({ id:'ex-bread', name:'🧄 Breadsticks (Reward)', unitPrice:0, qty:2, type:'extra', meta:'Loyalty free' });
+
           comboModal.close();
+          selectTab('summary');
         }
       };
 
@@ -923,6 +985,8 @@
       state.pizzaSavers = 0;
       persist();
       renderAll();
+      // Auto-start a new visit after checkout
+      newVisit(true);
       selectTab('summary');
     }
     function resetAll(){
@@ -948,8 +1012,198 @@
     applyTheme(localStorage.getItem('pizza_theme') || 'light');
     themeBtn.addEventListener('click',()=>{ const next = (localStorage.getItem('pizza_theme')||'light')==='light' ? 'dark' : 'light'; applyTheme(next); });
 
+    // ---------- LOYALTY (Cloud sync to your Google Apps Script) ----------
+    const API_URL = 'https://script.google.com/macros/s/AKfycbx3lDjnTVefLBqA166z57OYVBM4a-juSmu9vlSFui2fVtCZNa8NkCEh9y8Z1Wm2lQGv/exec';
+    const REQUIRED_PUNCHES = 10; // 10th is free
+    const DAILY_LIMIT_HOURS = 0; // disable time cooldown (we'll do per-visit instead)
+
+    const loy = {
+      els: {
+        id: document.getElementById('loy-player'),
+        add: document.getElementById('loy-add'),
+        undo: document.getElementById('loy-undo'),
+        redeem: document.getElementById('loy-redeem'),
+        tray: document.getElementById('loy-tray'),
+        body: document.getElementById('loy-body'),
+        stats: document.getElementById('loy-stats'),
+        status: document.getElementById('loy-status'),
+        dp: document.getElementById('dpStatus'),
+        exportBtn: document.getElementById('loy-export'),
+        visitInfo: document.getElementById('visitInfo'),
+        newVisitBtn: document.getElementById('newVisitBtn'),
+      },
+      players: {},
+      currentId: null,
+      visitId: Number(localStorage.getItem('pizzathis_visit_id') || '1'),
+      visitPunched: JSON.parse(localStorage.getItem('pizzathis_visit_punched') || '[]'), // array of ids punched this visit
+    };
+
+    function saveVisit(){
+      localStorage.setItem('pizzathis_visit_id', String(loy.visitId));
+      localStorage.setItem('pizzathis_visit_punched', JSON.stringify(loy.visitPunched));
+      loy.els.visitInfo.textContent = `#${loy.visitId} • ${loy.visitPunched.length} punched`;
+    }
+    function newVisit(auto=false){
+      if (!auto && !confirm('Start a new visit? (resets per-visit punch limit)')) return;
+      loy.visitId += 1;
+      loy.visitPunched = [];
+      saveVisit();
+      loySetStatus(`Visit #${loy.visitId} started. Per-visit limits reset.`, true);
+    }
+    saveVisit();
+    loy.els.newVisitBtn.addEventListener('click', ()=> newVisit(false));
+
+    function isDoubleTuesday(){ return new Date().getDay() === 2; } // all Tuesday
+
+    function loySetStatus(msg, ok=true){
+      loy.els.status.innerHTML = `<span style="font-weight:700;${ok?'color:#1a7f37':'color:#b71c1c'}">${ok?'✓':'✗'}</span> ${msg}`;
+    }
+    function loyUpdateDPLabel(){
+      const active = isDoubleTuesday();
+      loy.els.dp.textContent = `Double Punch Tuesday: ${active ? 'ACTIVE — all day' : 'auto all day on Tuesdays'}`;
+      loy.els.dp.style.fontWeight = active ? '700' : '400';
+    }
+    setInterval(loyUpdateDPLabel, 30_000); loyUpdateDPLabel();
+
+    async function api(method, body){
+      const url = API_URL + '?m=' + encodeURIComponent(method);
+      const opts = method==='list'
+        ? { method:'GET' }
+        : { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body||{}) };
+      const res = await fetch(url, opts);
+      if(!res.ok) throw new Error('Network');
+      return await res.json();
+    }
+
+    function loyRenderTray(player){
+      loy.els.tray.innerHTML = '';
+      const punches = player ? (player.punches||0) : 0;
+      for(let i=0;i<REQUIRED_PUNCHES;i++){
+        const div = document.createElement('div');
+        div.className = 'chipbox' + (i < punches ? ' filled':'' ) + (i===REQUIRED_PUNCHES-1 ? ' free':'');
+        div.textContent = i < punches ? '🍕' : (i===REQUIRED_PUNCHES-1 ? 'FREE' : '🍕');
+        loy.els.tray.appendChild(div);
+      }
+    }
+
+    function loyRenderTable(){
+      const entries = Object.entries(loy.players);
+      loy.els.body.innerHTML = entries.map(([id,p])=>`
+        <tr>
+          <td style="padding:8px;border-bottom:1px solid var(--border)">${id}</td>
+          <td style="padding:8px;border-bottom:1px solid var(--border)">${p.punches||0}/${REQUIRED_PUNCHES}</td>
+          <td style="padding:8px;border-bottom:1px solid var(--border)">${p.rewards||0}</td>
+          <td style="padding:8px;border-bottom:1px solid var(--border)">${p.last? new Date((p.last)*1000).toLocaleString() : '—'}</td>
+          <td style="padding:8px;border-bottom:1px solid var(--border)"><button class="btn" data-loyload="${id}">Load</button></td>
+        </tr>`).join('');
+      loy.els.body.querySelectorAll('[data-loyload]').forEach(b=>b.addEventListener('click',()=>{
+        loy.currentId = b.getAttribute('data-loyload');
+        loy.els.id.value = loy.currentId;
+        loyRenderTray(loy.players[loy.currentId]||null);
+      }));
+      const totalRewards = entries.reduce((a,[,p])=> a + (p.rewards||0), 0);
+      loy.els.stats.textContent = `Players: ${entries.length} • Rewards banked: ${totalRewards}`;
+    }
+
+    async function loyaltyLoad(){
+      try{
+        const data = await api('list');
+        loy.players = data.players || {};
+        loySetStatus('Cloud sync: loaded.', true);
+      }catch(e){
+        loySetStatus('Cloud error. Check deployment access.', false);
+      }
+      loyRenderTable();
+      loyRenderTray(loy.currentId ? loy.players[loy.currentId] : null);
+    }
+
+    async function loyaltyAddPunch(){
+      const id = (loy.els.id.value||'').trim();
+      if(!id) return loySetStatus('Enter a player / citizen id.', false);
+      // Once-per-visit protection
+      if (loy.visitPunched.includes(id)) {
+        return loySetStatus('This player already got a punch this visit. Start a New Visit to punch again.', false);
+      }
+      const inc = isDoubleTuesday() ? 2 : 1;
+      try{
+        const out = await api('punch', { id, inc, cooldownHours: DAILY_LIMIT_HOURS, required: REQUIRED_PUNCHES });
+        if (out.error && out.error==='cooldown') {
+          // Server cooldown shouldn’t trigger, but handle just in case
+          return loySetStatus('Server cooldown hit. Try again later or disable cooldown in script.', false);
+        }
+        loy.players[id] = out.player;
+        loy.currentId = id;
+        loy.visitPunched.push(id);
+        saveVisit();
+        loySetStatus(`Punch added (${(out.player.punches||0)}/${REQUIRED_PUNCHES}).${inc===2?' (Double Tuesday!)':''}`, true);
+      }catch(e){
+        loySetStatus('Failed to add punch (network?).', false);
+      }
+      loyRenderTable(); loyRenderTray(loy.players[id]);
+    }
+
+    async function loyaltyUndo(){
+      const id = (loy.els.id.value||'').trim();
+      if(!id) return loySetStatus('Enter a player id.', false);
+      try{
+        const out = await api('undo', { id });
+        loy.players[id] = out.player;
+        loy.currentId = id;
+        // Allow re-punch in this visit after undo
+        loy.visitPunched = loy.visitPunched.filter(x=>x!==id);
+        saveVisit();
+        loySetStatus('Removed one punch.', true);
+      }catch(e){
+        loySetStatus('Failed to remove punch.', false);
+      }
+      loyRenderTable(); loyRenderTray(loy.players[id]);
+    }
+
+    function openRewardWizard(){
+      const item = {
+        id:'loy-reward',
+        name:'🎁 Loyalty Reward — Large Meal',
+        price:0, type:'bundle',
+        pizzasIncluded:2, drinksIncluded:8, allow:'both'
+      };
+      openComboWizard(item, 1);
+    }
+
+    async function loyaltyRedeem(){
+      const id = (loy.els.id.value||'').trim();
+      if(!id) return loySetStatus('Enter a player id.', false);
+      try{
+        const out = await api('redeem', { id });
+        if(out.error){ loySetStatus('No rewards banked for this player.', false); return; }
+        loy.players[id] = out.player;
+        loy.currentId = id;
+        loySetStatus('Reward redeemed! Pick your free meal.', true);
+        // Let staff pick pizzas/drinks; breadsticks auto-added
+        openRewardWizard();
+      }catch(e){
+        loySetStatus('Failed to redeem reward.', false);
+      }
+      loyRenderTable(); loyRenderTray(loy.players[id]);
+    }
+
+    function loyaltyExport(){
+      const blob = new Blob([JSON.stringify({players:loy.players},null,2)],{type:'application/json'});
+      const a = document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='pizzathis_loyalty_backup.json'; a.click();
+    }
+
+    function loyaltyBind(){
+      loy.els.add.addEventListener('click', loyaltyAddPunch);
+      loy.els.undo.addEventListener('click', loyaltyUndo);
+      loy.els.redeem.addEventListener('click', loyaltyRedeem);
+      loy.els.exportBtn.addEventListener('click', loyaltyExport);
+    }
+    function loyaltyRenderAll(){
+      loyaltyLoad();
+    }
+
     // ---------- Init ----------
     renderAll();
+    loyaltyBind();
   </script>
 </body>
 </html>
