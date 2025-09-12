@@ -160,7 +160,7 @@
             <div class="cards" id="deals"></div>
           </div>
 
-          <!-- NEW: Pizza Pack section -->
+          <!-- Pizza Pack section -->
           <div class="section">
             <h3 style="margin:0 0 8px 0">Pizza Pack</h3>
             <div class="cards" id="packs"></div>
@@ -186,13 +186,11 @@
             <button class="btn" data-tab="summary" aria-selected="true">🧾 Summary</button>
             <button class="btn" data-tab="history" aria-selected="false">📜 History</button>
             <button class="btn" data-tab="ingredients" aria-selected="false">🧺 Ingredients</button>
-            <!-- NEW Loyalty tab -->
             <button class="btn" data-tab="loyalty" aria-selected="false">⭐ Loyalty</button>
           </div>
 
           <!-- SUMMARY TAB -->
           <div id="tab-summary" role="tabpanel">
-            <!-- Fulfillment -->
             <div class="option" style="margin-bottom:10px;">
               <div>
                 <div><strong>Fulfillment</strong></div>
@@ -274,7 +272,7 @@
             </div>
           </div>
 
-          <!-- LOYALTY TAB (NEW) -->
+          <!-- LOYALTY TAB -->
           <div id="tab-loyalty" role="tabpanel" hidden>
             <div class="option" style="margin-bottom:10px;">
               <div>
@@ -285,7 +283,7 @@
               <div style="display:grid;grid-template-columns:2fr 1fr 1fr;gap:8px;align-items:end;max-width:860px">
                 <div>
                   <label class="small muted">Player / Citizen ID</label>
-                  <input id="loy-player" placeholder="citizen_123 or name" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:10px;background:#fff;color:var(--ink)" />
+                  <input id="loy-player" placeholder="citizen_123 or name" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:10px;background:#fff;color:#000" />
                 </div>
                 <button class="btn primary" id="loy-add">Add Punch</button>
                 <div style="text-align:right">
@@ -374,8 +372,6 @@
         { id: 'dl-classic', name: 'Get Stuffed — Classic',   price: 800, type:'deal',   pizzasIncluded:4, allow:'classic',   drinksIncluded:16 },
         { id: 'dl-special', name: 'Get Stuffed — Specialty', price: 1000, type:'deal',  pizzasIncluded:4, allow:'specialty', drinksIncluded:16 },
       ],
-
-      // NEW: Pizza Pack section
       packs: [
         { id: 'bd-pack', name: '🍱 Pizza Pack', price: 700, type:'bundle',
           pizzasIncluded:2, allow:'both', drinksIncluded:8,
@@ -386,14 +382,12 @@
           surchargeSpecialty:50, isRefill:true,
           description:'Bring your box back and load it up again. Save $100 every time you refill the Pizza Pack. $50 extra for specialty pizzas.' },
       ],
-
       bundles: [
         { id: 'bd-medium',      name: '🍕 Medium Pizza Meal — 1 Classic + 4 Drinks',   price: 240, type:'bundle', pizzasIncluded:1, allow:'classic',   drinksIncluded:4 },
         { id: 'bd-medium-spec', name: '🍕 Medium Pizza Meal — 1 Specialty + 4 Drinks', price: 340, type:'bundle', pizzasIncluded:1, allow:'specialty', drinksIncluded:4 },
         { id: 'bd-large',       name: '🍕 Large Pizza Meal — 2 Classic + 8 Drinks',    price: 450, type:'bundle', pizzasIncluded:2, allow:'classic',   drinksIncluded:8 },
         { id: 'bd-large-spec',  name: '🍕 Large Pizza Meal — 2 Specialty + 8 Drinks',  price: 550, type:'bundle', pizzasIncluded:2, allow:'specialty', drinksIncluded:8 },
       ],
-
       extras: [
         { id: 'ex-bread', name: '🧄 Breadsticks', price: 50, type:'extra' },
         { id: 'ex-soda',  name: '🥤 Soda',        price: 40, type:'extra', isDrink:true },
@@ -404,7 +398,7 @@
       ],
     };
 
-    // Recipe map with quantified ingredients per pizza. Keys must match menu IDs.
+    // Recipe map
     const RECIPE_MAP = {
       'cl-margh': { 'Mozzarella':2, 'Tomato Sauce':1, 'Pizza Cheese':1, 'Dough':1 },
       'cl-pepp' : { 'Pepperoni':2, 'Tomato Sauce':1, 'Pizza Cheese':1, 'Dough':1 },
@@ -493,7 +487,7 @@
       const classic = document.getElementById('classic');
       const specialty = document.getElementById('specialty');
       const deals = document.getElementById('deals');
-      const packs = document.getElementById('packs');      // NEW
+      const packs = document.getElementById('packs');
       const bundles = document.getElementById('bundles');
       const extras = document.getElementById('extras');
 
@@ -501,13 +495,13 @@
       classic.innerHTML = make(MENU.classic);
       specialty.innerHTML = make(MENU.specialty);
       deals.innerHTML = make(MENU.deals);
-      packs.innerHTML = make(MENU.packs);                  // NEW
+      packs.innerHTML = make(MENU.packs);
       bundles.innerHTML = make(MENU.bundles);
       extras.innerHTML = make(MENU.extras);
 
       const allItems = [
         ...MENU.classic, ...MENU.specialty, ...MENU.deals,
-        ...MENU.packs,                                     // NEW
+        ...MENU.packs,
         ...MENU.bundles, ...MENU.extras
       ];
 
@@ -654,7 +648,7 @@
         }
       }
 
-      // Thu–Sat: Free breadsticks with any Get Stuffed deal (max 4 free per order)
+      // Thu–Sat: Free breadsticks with any Get Stuffed deal (max 4 per order)
       if (day>=4 && day<=6){
         const hasDealQty = state.cart.reduce((s,l)=> s + ((l.type==='deal')?l.qty:0), 0);
         if (hasDealQty>0){
@@ -692,7 +686,6 @@
       document.getElementById('promotions').textContent = `-${currency(promo.discount)}`;
       document.getElementById('total').textContent = currency(total);
       document.getElementById('promoNotes').textContent = promo.notes.join(' • ');
-
       const row = document.getElementById('deliveryRow');
       if (deliveryFee>0){ row.style.display='flex'; document.getElementById('deliveryFee').textContent = currency(deliveryFee); }
       else { row.style.display='none'; document.getElementById('deliveryFee').textContent = currency(0); }
@@ -834,13 +827,11 @@
         const fmtName = (id)=> (findMenuItem(id)||{}).name?.replace(/^[^ ]+ /,'') || id;
         const pizzaList = Object.entries(pizzaCounts).filter(([,c])=>c>0).map(([id,c])=>`${fmtName(id)} x${c}`);
         const drinkList = Object.entries(drinkCounts).filter(([,c])=>c>0).map(([id,c])=>`${fmtName(id)} x${c}`);
-        const notes = [];
         const info = (findMenuItem(item.id)?.description)||'';
         comboContent.innerHTML = `
           <div class="summary" style="gap:10px;">
             ${pizzaList.length?`<div><strong>Pizzas:</strong> ${pizzaList.join(', ')}</div>`:''}
             ${drinkList.length?`<div><strong>Drinks:</strong> ${drinkList.join(', ')}</div>`:''}
-            ${notes.length?`<div class="small muted">${notes.join(' • ')}</div>`:''}
             ${info?`<div class="small muted">${info}</div>`:''}
           </div>
         `;
@@ -1016,7 +1007,7 @@
     const API_URL = 'https://script.google.com/macros/s/AKfycbzV2Rm1bdRN6Be_qBPMoGmXORVG8rRBLTeAnS_agrKm-nxRUNQr9smsozc3CviAynvrjQ/exec';
 
     const REQUIRED_PUNCHES = 10; // 10th is free
-    const DAILY_LIMIT_HOURS = 0; // disable time cooldown (once-per-visit handled client-side)
+    const DAILY_LIMIT_HOURS = 0; // disable time cooldown
 
     const loy = {
       els: {
@@ -1036,7 +1027,7 @@
       players: {},
       currentId: null,
       visitId: Number(localStorage.getItem('pizzathis_visit_id') || '1'),
-      visitPunched: JSON.parse(localStorage.getItem('pizzathis_visit_punched') || '[]'), // array of ids punched this visit
+      visitPunched: JSON.parse(localStorage.getItem('pizzathis_visit_punched') || '[]'),
     };
 
     function saveVisit(){
@@ -1066,48 +1057,26 @@
     }
     setInterval(loyUpdateDPLabel, 30_000); loyUpdateDPLabel();
 
-    
-// --- API helper
-async function api(method, body){
-  const url = API_URL + '?m=' + encodeURIComponent(method);
+    // ---------- FIXED API: send RAW JSON for POST (no payload=...) ----------
+    async function api(method, body){
+      const url = API_URL + '?m=' + encodeURIComponent(method);
 
-  if (method === 'list') {
-    const res = await fetch(url, { method:'GET' });
-    const txt = await res.text();
-    let data = {};
-    try { data = JSON.parse(txt); } catch {}
-    if (!res.ok || (data && data.ok === false)) {
-      const msg = data && data.error ? data.error : `HTTP ${res.status} ${res.statusText}`;
-      throw new Error(msg);
-    }
-    return data;
-  }
+      if (method === 'list') {
+        const res = await fetch(url, { method:'GET' });
+        const txt = await res.text();
+        let data = {};
+        try { data = JSON.parse(txt); } catch {}
+        if (!res.ok || (data && data.ok === false)) {
+          const msg = data && data.error ? data.error : `HTTP ${res.status} ${res.statusText}`;
+          throw new Error(msg);
+        }
+        return data;
+      }
 
-  // Send raw JSON with no headers => Content-Type defaults to text/plain (simple request)
-  const res = await fetch(url, {
-    method: 'POST',
-    body: JSON.stringify(body || {})
-  });
-
-  const txt = await res.text();
-  let data = {};
-  try { data = JSON.parse(txt); } catch {}
-  if (!res.ok || (data && data.ok === false)) {
-    const msg = data && data.error ? data.error : `HTTP ${res.status} ${res.statusText}`;
-    throw new Error(msg);
-  }
-  return data;
-}
-
-
-      // POST as x-www-form-urlencoded to avoid preflight
-      const form = new URLSearchParams();
-      form.set('payload', JSON.stringify(body || {}));
-
+      // POST: raw JSON body, NO headers -> text/plain (simple request)
       const res = await fetch(url, {
-        method:'POST',
-        headers:{ 'Content-Type':'application/x-www-form-urlencoded;charset=UTF-8' },
-        body: form
+        method: 'POST',
+        body: JSON.stringify(body || {})
       });
 
       const txt = await res.text();
@@ -1156,7 +1125,7 @@ async function api(method, body){
         loy.players = data.players || {};
         loySetStatus('Cloud sync: loaded.', true);
       }catch(e){
-        loySetStatus(String(e && e.message ? e.message : 'Cloud error.'), false);
+        loySetStatus('Cloud error. Check deployment access.', false);
       }
       loyRenderTable();
       loyRenderTray(loy.currentId ? loy.players[loy.currentId] : null);
@@ -1181,7 +1150,7 @@ async function api(method, body){
         saveVisit();
         loySetStatus(`Punch added (${(out.player.punches||0)}/${REQUIRED_PUNCHES}).${inc===2?' (Double Tuesday!)':''}`, true);
       }catch(e){
-        loySetStatus(String(e && e.message ? e.message : e), false);
+        loySetStatus('Failed to add punch (network?).', false);
       }
       loyRenderTable(); loyRenderTray(loy.players[id]);
     }
@@ -1198,7 +1167,7 @@ async function api(method, body){
         saveVisit();
         loySetStatus('Removed one punch.', true);
       }catch(e){
-        loySetStatus(String(e && e.message ? e.message : e), false);
+        loySetStatus('Failed to remove punch.', false);
       }
       loyRenderTable(); loyRenderTray(loy.players[id]);
     }
@@ -1222,10 +1191,9 @@ async function api(method, body){
         loy.players[id] = out.player;
         loy.currentId = id;
         loySetStatus('Reward redeemed! Pick your free meal.', true);
-        // Let staff pick pizzas/drinks; breadsticks auto-added
         openRewardWizard();
       }catch(e){
-        loySetStatus(String(e && e.message ? e.message : e), false);
+        loySetStatus('Failed to redeem reward.', false);
       }
       loyRenderTable(); loyRenderTray(loy.players[id]);
     }
