@@ -1016,7 +1016,7 @@
     const API_URL = 'https://script.google.com/macros/s/AKfycbzV2Rm1bdRN6Be_qBPMoGmXORVG8rRBLTeAnS_agrKm-nxRUNQr9smsozc3CviAynvrjQ/exec';
 
     const REQUIRED_PUNCHES = 10; // 10th is free
-    const DAILY_LIMIT_HOURS = 0; // disable time cooldown
+    const DAILY_LIMIT_HOURS = 0; // disable time cooldown (once-per-visit handled client-side)
 
     const loy = {
       els: {
@@ -1066,14 +1066,40 @@
     }
     setInterval(loyUpdateDPLabel, 30_000); loyUpdateDPLabel();
 
+    // --- FIXED: API helper to avoid CORS preflight and surface real errors ---
     async function api(method, body){
       const url = API_URL + '?m=' + encodeURIComponent(method);
-      const opts = method==='list'
-        ? { method:'GET' }
-        : { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body||{}) };
-      const res = await fetch(url, opts);
-      if(!res.ok) throw new Error('Network');
-      return await res.json();
+
+      if (method === 'list') {
+        const res = await fetch(url, { method:'GET' });
+        const txt = await res.text();
+        let data = {};
+        try { data = JSON.parse(txt); } catch {}
+        if (!res.ok || (data && data.ok === false)) {
+          const msg = data && data.error ? data.error : `HTTP ${res.status} ${res.statusText}`;
+          throw new Error(msg);
+        }
+        return data;
+      }
+
+      // POST as x-www-form-urlencoded to avoid preflight
+      const form = new URLSearchParams();
+      form.set('payload', JSON.stringify(body || {}));
+
+      const res = await fetch(url, {
+        method:'POST',
+        headers:{ 'Content-Type':'application/x-www-form-urlencoded;charset=UTF-8' },
+        body: form
+      });
+
+      const txt = await res.text();
+      let data = {};
+      try { data = JSON.parse(txt); } catch {}
+      if (!res.ok || (data && data.ok === false)) {
+        const msg = data && data.error ? data.error : `HTTP ${res.status} ${res.statusText}`;
+        throw new Error(msg);
+      }
+      return data;
     }
 
     function loyRenderTray(player){
@@ -1112,7 +1138,7 @@
         loy.players = data.players || {};
         loySetStatus('Cloud sync: loaded.', true);
       }catch(e){
-        loySetStatus('Cloud error. Check deployment access.', false);
+        loySetStatus(String(e && e.message ? e.message : 'Cloud error.'), false);
       }
       loyRenderTable();
       loyRenderTray(loy.currentId ? loy.players[loy.currentId] : null);
@@ -1129,7 +1155,6 @@
       try{
         const out = await api('punch', { id, inc, cooldownHours: DAILY_LIMIT_HOURS, required: REQUIRED_PUNCHES });
         if (out.error && out.error==='cooldown') {
-          // Server cooldown shouldn’t trigger, but handle just in case
           return loySetStatus('Server cooldown hit. Try again later or disable cooldown in script.', false);
         }
         loy.players[id] = out.player;
@@ -1138,7 +1163,7 @@
         saveVisit();
         loySetStatus(`Punch added (${(out.player.punches||0)}/${REQUIRED_PUNCHES}).${inc===2?' (Double Tuesday!)':''}`, true);
       }catch(e){
-        loySetStatus('Failed to add punch (network?).', false);
+        loySetStatus(String(e && e.message ? e.message : e), false);
       }
       loyRenderTable(); loyRenderTray(loy.players[id]);
     }
@@ -1155,7 +1180,7 @@
         saveVisit();
         loySetStatus('Removed one punch.', true);
       }catch(e){
-        loySetStatus('Failed to remove punch.', false);
+        loySetStatus(String(e && e.message ? e.message : e), false);
       }
       loyRenderTable(); loyRenderTray(loy.players[id]);
     }
@@ -1182,7 +1207,7 @@
         // Let staff pick pizzas/drinks; breadsticks auto-added
         openRewardWizard();
       }catch(e){
-        loySetStatus('Failed to redeem reward.', false);
+        loySetStatus(String(e && e.message ? e.message : e), false);
       }
       loyRenderTable(); loyRenderTray(loy.players[id]);
     }
