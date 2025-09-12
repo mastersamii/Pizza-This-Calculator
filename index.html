@@ -278,7 +278,7 @@
               <div>
                 <div><strong>Loyalty Manager</strong></div>
                 <div class="small">10 punches. 10th is free → Large Meal (2 pizzas + 8 drinks + 2 breadsticks).</div>
-                <div class="small" id="dpStatus">Double Punch Tuesday: auto all day (ACTIVE only on Tuesdays)</div>
+                <div class="small" id="dpStatus">Double Punch Tuesday:(ACTIVE only on Tuesdays)</div>
               </div>
               <div style="display:grid;grid-template-columns:2fr 1fr 1fr;gap:8px;align-items:end;max-width:860px">
                 <div>
@@ -869,7 +869,7 @@
           // Add chosen pizzas/drinks as a single free bundle line
           addToCart({
             id:item.id||null,
-            name:item.name || '🎁 Loyalty Reward — Large Meal',
+            name:item.name || '🎁 Loyalty Reward: Large Meal',
             unitPrice: 0, qty: 1, type:'bundle',
             combo: pizzaIds, drinks: drinksObj, meta: meta + ' • Loyalty free'
           });
@@ -1133,7 +1133,7 @@
 
     async function loyaltyAddPunch(){
       const id = (loy.els.id.value||'').trim();
-      if(!id) return loySetStatus('Enter a player / citizen id.', false);
+      if(!id) return loySetStatus('Enter a player name.', false);
       // Once-per-visit protection
       if (loy.visitPunched.includes(id)) {
         return loySetStatus('This player already got a punch this visit. Start a New Visit to punch again.', false);
