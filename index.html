@@ -1013,9 +1013,10 @@
     themeBtn.addEventListener('click',()=>{ const next = (localStorage.getItem('pizza_theme')||'light')==='light' ? 'dark' : 'light'; applyTheme(next); });
 
     // ---------- LOYALTY (Cloud sync to your Google Apps Script) ----------
-    const API_URL = 'https://script.google.com/macros/s/AKfycbx3lDjnTVefLBqA166z57OYVBM4a-juSmu9vlSFui2fVtCZNa8NkCEh9y8Z1Wm2lQGv/exec';
+    const API_URL = 'https://script.google.com/macros/s/AKfycbxQpppeOElayqbAlirikQuoyIam6DvZsAKjP-LRrh9xA0GomUgLwmuoCL7nL5hTkBnc0g/exec';
+
     const REQUIRED_PUNCHES = 10; // 10th is free
-    const DAILY_LIMIT_HOURS = 0; // disable time cooldown (we'll do per-visit instead)
+    const DAILY_LIMIT_HOURS = 0; // disable time cooldown
 
     const loy = {
       els: {
