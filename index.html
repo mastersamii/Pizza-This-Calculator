@@ -49,14 +49,14 @@
     .grid{ display:grid; grid-template-columns:1.2fr .8fr; gap:20px; }
     @media (max-width:980px){ .grid{ grid-template-columns:1fr; } }
 
-    .panel{ background:var(--panel); border:1px solid var(--border); border-radius:var(--radius); box-shadow:var(--shadow); }
+    .panel{ background:var(--panel); border:1px solid var(--border); border-radius:var(--radius); }
     .panel h2{ margin:0; padding:16px 18px; font-size:1rem; border-bottom:1px solid var(--border); }
     .panel .content{ padding:16px; }
 
     .section{ margin-bottom:16px; }
     .cards{ display:grid; grid-template-columns:repeat(auto-fill,minmax(240px,1fr)); gap:12px; }
 
-    .card{ background:var(--card); border:1px solid var(--border); border-radius:14px; padding:12px; box-shadow:var(--shadow); display:flex; flex-direction:column; gap:8px; }
+    .card{ background:var(--card); border:1px solid var(--border); border-radius:14px; padding:12px; display:flex; flex-direction:column; gap:8px; }
     .card h3{ margin:0; font-size:1rem; }
     .price{ color:var(--accent); font-weight:700; }
     .muted{ color:var(--muted); font-size:.9rem; }
@@ -90,7 +90,7 @@
     .tabs{ display:flex; gap:8px; margin-bottom:10px; }
     .tabs .btn[aria-selected="true"]{ outline:2px solid var(--accent); }
 
-    dialog{ width:min(760px,92vw); background:var(--panel); color:var(--text); border:1px solid var(--border); border-radius:18px; padding:0; box-shadow:var(--shadow); }
+    dialog{ width:min(760px,92vw); background:var(--panel); color:var(--text); border:1px solid var(--border); border-radius:18px; padding:0; }
     dialog::backdrop{ background:rgba(0,0,0,.6); }
     .modal-header{ display:flex; align-items:center; justify-content:space-between; padding:16px 18px; border-bottom:1px solid var(--border); }
     .modal-body{ padding:16px; display:grid; gap:18px; }
@@ -98,7 +98,7 @@
 
     /* Selector grid for pizzas/drinks */
     .selector-grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(180px,1fr)); gap:10px; }
-    .select-card{ border:1px solid var(--border); background:var(--card); border-radius:12px; padding:10px; display:flex; flex-direction:column; gap:8px; box-shadow:var(--shadow); }
+    .select-card{ border:1px solid var(--border); background:var(--card); border-radius:12px; padding:10px; display:flex; flex-direction:column; gap:8px; }
     .select-title{ font-weight:700; }
     .select-qty{ display:grid; grid-template-columns:32px 1fr 32px; align-items:center; gap:8px; }
     .select-qty button{ height:32px; border-radius:8px; border:1px solid var(--border); background:var(--chip); }
@@ -132,7 +132,7 @@
       </div>
     </header>
 
-    <div class="flagbar" aria-hidden="true" style="height:10px;border-radius:8px;overflow:hidden;box-shadow:var(--shadow);margin-bottom:18px;">
+    <div class="flagbar" aria-hidden="true" style="height:10px;border-radius:8px;overflow:hidden;margin-bottom:18px;">
       <div style="display:flex;height:100%;">
         <div style="flex:1;background:var(--green)"></div>
         <div style="flex:1;background:var(--white)"></div>
@@ -460,6 +460,10 @@
       if (allow==='both') return [...MENU.classic, ...MENU.specialty];
       return MENU.classic;
     }
+    // Helper: is this pizza id a specialty?
+    function isSpecialtyId(pid){
+      return MENU.specialty.some(p => p.id === pid);
+    }
 
     // ---------- Cards ----------
     function cardHTML(item){
@@ -501,8 +505,7 @@
 
       const allItems = [
         ...MENU.classic, ...MENU.specialty, ...MENU.deals,
-        ...MENU.packs,
-        ...MENU.bundles, ...MENU.extras
+        ...MENU.packs, ...MENU.bundles, ...MENU.extras
       ];
 
       document.querySelectorAll('.cards .card').forEach(card=>{
@@ -767,14 +770,15 @@
     const comboNext = document.getElementById('comboNext');
     document.getElementById('closeCombo').addEventListener('click', ()=> comboModal.close());
 
+    // FIXED: loyalty vs paid items, and specialty surcharge
     function openComboWizard(item, qty){
       const pizzasNeeded = item.pizzasIncluded || 0;
       const drinksNeeded = item.drinksIncluded || 0;
-      const pizzaPool = getPizzaPool(item.allow || 'classic'); // reward allows 'both'
+      const pizzaPool = getPizzaPool(item.allow || 'classic');
       const drinkPool = getDrinkPool();
 
-      const pizzaCounts = {}; // id -> count
-      const drinkCounts = {}; // id -> count
+      const pizzaCounts = {};
+      const drinkCounts = {};
       let step = pizzasNeeded>0 ? 0 : (drinksNeeded>0 ? 1 : 2); // 0=pizzas, 1=drinks, 2=confirm
 
       const renderSteps = ()=>{
@@ -842,50 +846,80 @@
 
       const toArrayByCounts = (counts)=> Object.entries(counts).flatMap(([id,c])=> Array(c).fill(id));
 
-      comboPrev.onclick = ()=>{
-        if (step>0){ step--; rerender(); }
-      };
+      comboPrev.onclick = ()=>{ if (step>0){ step--; rerender(); } };
       comboNext.onclick = ()=>{
         if (step===0){
-          if (drinksNeeded>0){ step=1; rerender(); }
-          else { step=2; rerender(); }
-        } else if (step===1){
-          step=2; rerender();
-        } else {
-          const pizzaIds = toArrayByCounts(pizzaCounts);
-          const fmtName = (id)=> (findMenuItem(id)||{}).name?.replace(/^[^ ]+ /,'') || id;
-          const pizzaNames = pizzaIds.map(fmtName);
-          const drinksObj = Object.fromEntries(Object.entries(drinkCounts).filter(([,c])=>c>0));
-          const drinkParts = Object.entries(drinksObj).map(([id,c])=>`${fmtName(id)} x${c}`);
-          const metaParts = [];
-          if (pizzaNames.length){
-            const counts = pizzaNames.reduce((a,n)=>(a[n]=(a[n]||0)+1,a),{});
-            metaParts.push(`Pizzas: ${Object.entries(counts).map(([n,c])=>`${n} x${c}`).join(' + ')}`);
-          }
-          if (drinkParts.length) metaParts.push(`Drinks: ${drinkParts.join(', ')}`);
+          step = drinksNeeded>0 ? 1 : 2; rerender(); return;
+        }
+        if (step===1){ step=2; rerender(); return; }
 
-          const meta = metaParts.join(' • ');
+        // step === 2 -> finalize
+        const pizzaIds = toArrayByCounts(pizzaCounts);
+        const drinksObj = Object.fromEntries(Object.entries(drinkCounts).filter(([,c])=>c>0));
 
-          // Add chosen pizzas/drinks as a single free bundle line
+        const fmtName = (id)=> (findMenuItem(id)||{}).name?.replace(/^[^ ]+ /,'') || id;
+        const pizzaNames = pizzaIds.map(fmtName);
+        const drinkParts = Object.entries(drinksObj).map(([id,c])=>`${fmtName(id)} x${c}`);
+
+        const metaParts = [];
+        if (pizzaNames.length){
+          const counts = pizzaNames.reduce((a,n)=>(a[n]=(a[n]||0)+1,a),{});
+          metaParts.push(`Pizzas: ${Object.entries(counts).map(([n,c])=>`${n} x${c}`).join(' + ')}`);
+        }
+        if (drinkParts.length) metaParts.push(`Drinks: ${drinkParts.join(', ')}`);
+        const meta = metaParts.join(' • ');
+
+        // Loyalty reward (free)
+        if (item.id === 'loy-reward'){
           addToCart({
-            id:item.id||null,
+            id:item.id,
             name:item.name || '🎁 Loyalty Reward: Large Meal',
-            unitPrice: 0, qty: 1, type:'bundle',
-            combo: pizzaIds, drinks: drinksObj, meta: meta + ' • Loyalty free'
+            unitPrice: 0,
+            qty: 1,
+            type:'bundle',
+            combo: pizzaIds,
+            drinks: drinksObj,
+            meta: meta + ' • Loyalty free'
           });
-          // Plus 2 free breadsticks
           addToCart({ id:'ex-bread', name:'🧄 Breadsticks (Reward)', unitPrice:0, qty:2, type:'extra', meta:'Loyalty free' });
-
           comboModal.close();
           selectTab('summary');
+          return;
         }
+
+        // Paid items (deals/packs/bundles)
+        let unitPrice = item.price || 0;
+        if (item.allow === 'both' && item.surchargeSpecialty){
+          const specialtyCount = pizzaIds.filter(pid => isSpecialtyId(pid)).length;
+          unitPrice += specialtyCount * item.surchargeSpecialty;
+        }
+
+        addToCart({
+          id: item.id,
+          name: item.name,
+          unitPrice,
+          qty: qty || 1,
+          type: item.type,
+          combo: pizzaIds,
+          drinks: drinksObj,
+          meta
+        });
+
+        comboModal.close();
+        selectTab('summary');
       };
 
       function rerender(){
         renderSteps();
-        if (step===0) renderGrid(pizzaPool, pizzaCounts, pizzasNeeded, (item.allow==='specialty'?'Specialty Pizzas': (item.allow==='both' ? 'Classic or Specialty Pizzas' : 'Classic Pizzas')));
-        else if (step===1) renderGrid(drinkPool, drinkCounts, drinksNeeded, 'Drinks');
-        else renderConfirm();
+        if (step===0){
+          const label = (item.allow==='specialty' ? 'Specialty Pizzas' :
+                        (item.allow==='both' ? 'Classic or Specialty Pizzas' : 'Classic Pizzas'));
+          renderGrid(pizzaPool, pizzaCounts, pizzasNeeded, label);
+        } else if (step===1){
+          renderGrid(drinkPool, drinkCounts, drinksNeeded, 'Drinks');
+        } else {
+          renderConfirm();
+        }
       }
 
       rerender();
