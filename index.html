@@ -361,7 +361,7 @@
         { id: 'cl-margh', name: '🍅🧀🌿 Margherita', price: 200, type:'pizza' },
         { id: 'cl-pepp',  name: '🍕 Pepperoni',      price: 200, type:'pizza' },
         { id: 'cl-salami',name: '🥩 Salami',         price: 200, type:'pizza' },
-        { id: 'cl-hamche',name: '🐷🧀 Ham & Cheese',  price: 200, type:'pizza' },
+        { id: 'cl-hamche',name: '🐷🧀 Ham',  price: 200, type:'pizza' },
       ],
       specialty: [
         { id: 'sp-veg',   name: '🥦🍄 Vegetarian',  price: 250, type:'pizza' },
@@ -369,8 +369,8 @@
         { id: 'sp-diav',  name: '🌶️ Diavola',      price: 250, type:'pizza' },
       ],
       deals: [
-        { id: 'dl-classic', name: 'Get Stuffed — Classic',   price: 800, type:'deal',   pizzasIncluded:4, allow:'classic',   drinksIncluded:16 },
-        { id: 'dl-special', name: 'Get Stuffed — Specialty', price: 1000, type:'deal',  pizzasIncluded:4, allow:'specialty', drinksIncluded:16 },
+        { id: 'dl-classic', name: 'Get Stuffed: Classic',   price: 800, type:'deal',   pizzasIncluded:4, allow:'classic',   drinksIncluded:16 },
+        { id: 'dl-special', name: 'Get Stuffed: Specialty', price: 1000, type:'deal',  pizzasIncluded:4, allow:'specialty', drinksIncluded:16 },
       ],
       packs: [
         { id: 'bd-pack', name: '🍱 Pizza Pack', price: 700, type:'bundle',
@@ -383,10 +383,10 @@
           description:'Bring your box back and load it up again. Save $100 every time you refill the Pizza Pack. $50 extra for specialty pizzas.' },
       ],
       bundles: [
-        { id: 'bd-medium',      name: '🍕 Medium Pizza Meal — 1 Classic + 4 Drinks',   price: 240, type:'bundle', pizzasIncluded:1, allow:'classic',   drinksIncluded:4 },
-        { id: 'bd-medium-spec', name: '🍕 Medium Pizza Meal — 1 Specialty + 4 Drinks', price: 340, type:'bundle', pizzasIncluded:1, allow:'specialty', drinksIncluded:4 },
-        { id: 'bd-large',       name: '🍕 Large Pizza Meal — 2 Classic + 8 Drinks',    price: 450, type:'bundle', pizzasIncluded:2, allow:'classic',   drinksIncluded:8 },
-        { id: 'bd-large-spec',  name: '🍕 Large Pizza Meal — 2 Specialty + 8 Drinks',  price: 550, type:'bundle', pizzasIncluded:2, allow:'specialty', drinksIncluded:8 },
+        { id: 'bd-medium',      name: '🍕 Medium Pizza Meal: 1 Classic + 4 Drinks',   price: 240, type:'bundle', pizzasIncluded:1, allow:'classic',   drinksIncluded:4 },
+        { id: 'bd-medium-spec', name: '🍕 Medium Pizza Meal: 1 Specialty + 4 Drinks', price: 340, type:'bundle', pizzasIncluded:1, allow:'specialty', drinksIncluded:4 },
+        { id: 'bd-large',       name: '🍕 Large Pizza Meal: 2 Classic + 8 Drinks',    price: 450, type:'bundle', pizzasIncluded:2, allow:'classic',   drinksIncluded:8 },
+        { id: 'bd-large-spec',  name: '🍕 Large Pizza Meal: 2 Specialty + 8 Drinks',  price: 550, type:'bundle', pizzasIncluded:2, allow:'specialty', drinksIncluded:8 },
       ],
       extras: [
         { id: 'ex-bread', name: '🧄 Breadsticks', price: 50, type:'extra' },
@@ -1086,7 +1086,7 @@
     }
     function loyUpdateDPLabel(){
       const active = isDoubleTuesday();
-      loy.els.dp.textContent = `Double Punch Tuesday: ${active ? 'ACTIVE — all day' : 'auto all day on Tuesdays'}`;
+      loy.els.dp.textContent = `Double Punch Tuesday: ${active ? 'ACTIVE all day' : 'auto all day on Tuesdays'}`;
       loy.els.dp.style.fontWeight = active ? '700' : '400';
     }
     setInterval(loyUpdateDPLabel, 30_000); loyUpdateDPLabel();
@@ -1209,7 +1209,7 @@
     function openRewardWizard(){
       const item = {
         id:'loy-reward',
-        name:'🎁 Loyalty Reward — Large Meal',
+        name:'🎁 Loyalty Reward: Large Meal',
         price:0, type:'bundle',
         pizzasIncluded:2, drinksIncluded:8, allow:'both'
       };
