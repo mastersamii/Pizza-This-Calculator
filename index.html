@@ -6,7 +6,6 @@
   <title>Pizza This Order Calculator</title>
   <style>
     :root {
-      /* Italian palette */
       --red: #d32f2f;
       --green: #2e7d32;
       --white: #ffffff;
@@ -23,7 +22,6 @@
       --accent: var(--green);
       --radius: 16px;
 
-      /* Dark theme tokens */
       --bg-dark:#0f1220; --panel-dark:#13172a; --card-dark:#171c33;
       --chip-dark:#222847; --text-dark:#e8ecf8; --border-dark:#2a3156;
     }
@@ -92,22 +90,19 @@
 
     dialog{ width:min(760px,92vw); background:var(--panel); color:var(--text); border:1px solid var(--border); border-radius:18px; padding:0; }
     dialog::backdrop{ background:rgba(0,0,0,.6); }
-    .modal-header{ display:flex; align-items:center; justify-content:space-between; padding:16px 18px; border-bottom:1px solid var(--border); }
+    .modal-header{ display:flex; align-items:center; justify-content:space-between; padding:16px 18px; }
     .modal-body{ padding:16px; display:grid; gap:18px; }
     .option{ display:flex; justify-content:space-between; align-items:center; padding:10px 12px; border:1px solid var(--border); border-radius:12px; background:var(--card); }
 
-    /* Selector grid for pizzas/drinks */
     .selector-grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(180px,1fr)); gap:10px; }
     .select-card{ border:1px solid var(--border); background:var(--card); border-radius:12px; padding:10px; display:flex; flex-direction:column; gap:8px; }
     .select-title{ font-weight:700; }
     .select-qty{ display:grid; grid-template-columns:32px 1fr 32px; align-items:center; gap:8px; }
     .select-qty button{ height:32px; border-radius:8px; border:1px solid var(--border); background:var(--chip); }
 
-    /* Ingredients list */
     .ing-list{ display:grid; grid-template-columns:1fr auto; gap:8px; }
     .ing-actions{ display:flex; gap:8px; justify-content:flex-end; }
 
-    /* Loyalty tray */
     .punchtray{display:flex;gap:8px;flex-wrap:wrap}
     .chipbox{display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:10px;background:var(--chip);border:1px dashed #cad0e4}
     .chipbox.filled{background:repeating-conic-gradient(from 0deg, var(--green) 0 20%, #2c6d30 0 40%);border:none;color:#fff}
@@ -141,7 +136,6 @@
     </div>
 
     <div class="grid">
-      <!-- Left: Menu -->
       <section class="panel">
         <h2>Menu</h2>
         <div class="content">
@@ -160,7 +154,6 @@
             <div class="cards" id="deals"></div>
           </div>
 
-          <!-- Pizza Pack section -->
           <div class="section">
             <h3 style="margin:0 0 8px 0">Pizza Pack</h3>
             <div class="cards" id="packs"></div>
@@ -178,7 +171,6 @@
         </div>
       </section>
 
-      <!-- Right: Orders -->
       <aside class="panel">
         <h2>Orders</h2>
         <div class="content">
@@ -189,7 +181,6 @@
             <button class="btn" data-tab="loyalty" aria-selected="false">⭐ Loyalty</button>
           </div>
 
-          <!-- SUMMARY TAB -->
           <div id="tab-summary" role="tabpanel">
             <div class="option" style="margin-bottom:10px;">
               <div>
@@ -213,7 +204,6 @@
 
             <div class="divider"></div>
 
-            <!-- Pizza Saver Sunday -->
             <div class="option" id="saverSection" style="margin-bottom:10px;">
               <div>
                 <div><strong>Pizza Saver Sunday</strong></div>
@@ -248,7 +238,6 @@
             </div>
           </div>
 
-          <!-- HISTORY TAB -->
           <div id="tab-history" role="tabpanel" hidden>
             <div class="summary" style="gap:8px; margin-bottom:8px;">
               <div class="row"><span>Orders served today</span><strong id="ordersToday">0</strong></div>
@@ -260,7 +249,6 @@
             </div>
           </div>
 
-          <!-- INGREDIENTS TAB -->
           <div id="tab-ingredients" role="tabpanel" hidden>
             <div class="small muted" style="margin-bottom:6px;">Auto-aggregated from your current cart using each pizza's recipe and your bundle selections.</div>
             <div id="ingredientList" class="order-card" style="padding:12px;">
@@ -272,7 +260,6 @@
             </div>
           </div>
 
-          <!-- LOYALTY TAB -->
           <div id="tab-loyalty" role="tabpanel" hidden>
             <div class="option" style="margin-bottom:10px;">
               <div>
@@ -332,13 +319,11 @@
               </div>
             </div>
           </div>
-          <!-- /LOYALTY TAB -->
         </div>
       </aside>
     </div>
   </div>
 
-  <!-- Combo/Bundle Selector Modal -->
   <dialog id="comboModal">
     <div class="modal-header">
       <strong id="comboTitle">Choose Pizzas</strong>
@@ -355,7 +340,6 @@
   </dialog>
 
   <script>
-    // ---------- Data ----------
     const MENU = {
       classic: [
         { id: 'cl-margh', name: '🍅🧀🌿 Margherita', price: 200, type:'pizza' },
@@ -398,7 +382,6 @@
       ],
     };
 
-    // Recipe map
     const RECIPE_MAP = {
       'cl-margh': { 'Mozzarella':2, 'Tomato Sauce':1, 'Pizza Cheese':1, 'Dough':1 },
       'cl-pepp' : { 'Pepperoni':2, 'Tomato Sauce':1, 'Pizza Cheese':1, 'Dough':1 },
@@ -412,7 +395,6 @@
 
     const currency = n => `$${n.toFixed(2)}`;
 
-    // ---------- State ----------
     const STATE_KEY = 'pizza_calc_state_v10';
     const HIST_KEY  = 'pizza_order_history_v5';
 
@@ -448,7 +430,6 @@
       }));
     const persistHistory = () => localStorage.setItem(HIST_KEY, JSON.stringify(state.history));
 
-    // ---------- Helpers ----------
     function findMenuItem(id){
       const pools = [MENU.classic, MENU.specialty, MENU.deals, MENU.packs, MENU.bundles, MENU.extras];
       for (const pool of pools){ const f = pool.find(x=>x.id===id); if (f) return f; }
@@ -460,12 +441,56 @@
       if (allow==='both') return [...MENU.classic, ...MENU.specialty];
       return MENU.classic;
     }
-    // Helper: is this pizza id a specialty?
     function isSpecialtyId(pid){
       return MENU.specialty.some(p => p.id === pid);
     }
 
-    // ---------- Cards ----------
+    function getAllPizzaUnitPricesForBOGO(){
+      const unitPrices = [];
+      const drinkPool = getDrinkPool();
+      const avgDrinkPrice = drinkPool.length
+        ? (drinkPool.reduce((s,d)=>s + d.price, 0) / drinkPool.length)
+        : 0;
+      const lunchBoxItem = findMenuItem('ex-lunch');
+      const lunchBoxPrice = lunchBoxItem ? lunchBoxItem.price : 0;
+
+      state.cart.forEach(line=>{
+        if (line.type === 'pizza'){
+          for(let i=0;i<line.qty;i++) unitPrices.push(line.unitPrice);
+          return;
+        }
+        if ((line.type === 'deal' || line.type === 'bundle') && Array.isArray(line.combo)){
+          const menuItem = findMenuItem(line.id) || {};
+          const pizzasIncluded = menuItem.pizzasIncluded || 0;
+          if (!pizzasIncluded) return;
+
+          let drinksValuePerUnit = 0;
+          if (line.drinks && typeof line.drinks === 'object'){
+            drinksValuePerUnit = Object.entries(line.drinks).reduce((sum,[did,count])=>{
+              const d = findMenuItem(did);
+              const price = d ? d.price : avgDrinkPrice;
+              return sum + price * count;
+            }, 0);
+          } else if (menuItem.drinksIncluded){
+            drinksValuePerUnit = (menuItem.drinksIncluded || 0) * avgDrinkPrice;
+          }
+
+          let lunchboxPerUnit = 0;
+          if (menuItem.includesLunchbox && !menuItem.isRefill){
+            lunchboxPerUnit = lunchBoxPrice;
+          }
+
+          const pizzaValuePerUnit = Math.max((line.unitPrice - drinksValuePerUnit - lunchboxPerUnit), 0);
+          const perPizza = pizzasIncluded > 0 ? (pizzaValuePerUnit / pizzasIncluded) : 0;
+          const totalPizzas = pizzasIncluded * line.qty;
+          for (let i=0; i<totalPizzas; i++){
+            unitPrices.push(perPizza);
+          }
+        }
+      });
+      return unitPrices;
+    }
+
     function cardHTML(item){
       const needsCombo = (item.pizzasIncluded||0) > 0 || (item.drinksIncluded||0) > 0;
       return `
@@ -533,7 +558,6 @@
       });
     }
 
-    // ---------- Cart ----------
     function renderCart(){
       const cart = document.getElementById('cart');
       if (!state.cart.length){
@@ -554,8 +578,19 @@
           <div><strong>${currency(l.unitPrice*l.qty)}</strong></div>
         </div>`).join('');
 
-      cart.querySelectorAll('[data-inc]').forEach(b=>b.addEventListener('click',()=>{ const i=+b.getAttribute('data-inc'); state.cart[i].qty++; persist(); renderCart(); renderTotals(); renderIngredients(); }));
-      cart.querySelectorAll('[data-dec]').forEach(b=>b.addEventListener('click',()=>{ const i=+b.getAttribute('data-dec'); state.cart[i].qty--; if(state.cart[i].qty<=0) state.cart.splice(i,1); persist(); renderCart(); renderTotals(); renderIngredients(); }));
+      cart.querySelectorAll('[data-inc]').forEach(b=>b.addEventListener('click',()=>{
+        const i=+b.getAttribute('data-inc');
+        state.cart[i].qty++;
+        syncAutoBreadsticks();
+        persist(); renderCart(); renderTotals(); renderIngredients();
+      }));
+      cart.querySelectorAll('[data-dec]').forEach(b=>b.addEventListener('click',()=>{
+        const i=+b.getAttribute('data-dec');
+        state.cart[i].qty--;
+        if(state.cart[i].qty<=0) state.cart.splice(i,1);
+        syncAutoBreadsticks();
+        persist(); renderCart(); renderTotals(); renderIngredients();
+      }));
     }
 
     function addToCart(line){
@@ -566,10 +601,10 @@
         JSON.stringify(l.drinks||{})===JSON.stringify(line.drinks||{})
       );
       if (found) found.qty += line.qty; else state.cart.push(line);
+      syncAutoBreadsticks();
       persist(); renderCart(); renderTotals(); renderIngredients();
     }
 
-    // ---------- Fulfillment ----------
     const ZONE_FEES = { city:50, sandy:100, paleto:150 };
 
     function renderFulfillment(){
@@ -591,7 +626,6 @@
       persist(); renderTotals();
     });
 
-    // ---------- Pizza Saver Sunday ----------
     function isSunday(){ return new Date().getDay() === 0; }
     function renderPizzaSaver(){
       const chip = document.getElementById('saverChip');
@@ -631,27 +665,23 @@
       }
     });
 
-    // ---------- Promotions ----------
     function computePromotions(){
-      const day = new Date().getDay(); // 0 Sun .. 6 Sat
+      const day = new Date().getDay();
       let notes = [];
       let discount = 0;
 
-      // Mon–Wed: BOGO 50% on pizzas
       if (day>=1 && day<=3){
-        const unitPrices = [];
-        state.cart.forEach(l=>{ if (l.type === 'pizza'){ for(let i=0;i<l.qty;i++) unitPrices.push(l.unitPrice); } });
-        if (unitPrices.length >= 2){
-          unitPrices.sort((a,b)=>b-a);
-          for (let i=0;i<unitPrices.length; i+=2){
-            const p2 = unitPrices[i+1];
+        const allPizzaUnitPrices = getAllPizzaUnitPricesForBOGO();
+        if (allPizzaUnitPrices.length >= 2){
+          allPizzaUnitPrices.sort((a,b)=>b-a);
+          for (let i=0; i<allPizzaUnitPrices.length; i+=2){
+            const p2 = allPizzaUnitPrices[i+1];
             if (typeof p2 === 'number') discount += p2 * 0.5;
           }
-          if (discount>0) notes.push('Mon–Wed BOGO 50% on pizzas applied');
+          if (discount>0) notes.push('Mon–Wed BOGO 50% on pizzas applied (incl. bundles/packs)');
         }
       }
 
-      // Thu–Sat: Free breadsticks with any Get Stuffed deal (max 4 per order)
       if (day>=4 && day<=6){
         const hasDealQty = state.cart.reduce((s,l)=> s + ((l.type==='deal')?l.qty:0), 0);
         if (hasDealQty>0){
@@ -666,7 +696,6 @@
         }
       }
 
-      // Sunday: Pizza Saver Sunday $50 off per saver
       if (day===0 && state.pizzaSavers>0){
         const saverDiscount = 50 * state.pizzaSavers;
         discount += saverDiscount;
@@ -676,7 +705,6 @@
       return { discount: +(discount.toFixed(2)), notes };
     }
 
-    // ---------- Totals ----------
     function renderTotals(){
       const subtotal = state.cart.reduce((s,l)=>s + l.unitPrice*l.qty, 0);
       const manual = +(subtotal * (state.discountPct/100)).toFixed(2);
@@ -694,13 +722,11 @@
       else { row.style.display='none'; document.getElementById('deliveryFee').textContent = currency(0); }
     }
 
-    // ---------- Discount slider ----------
     const range = document.getElementById('discountRange');
     const discountLabel = document.getElementById('discountLabel');
     function renderDiscount(){ range.value = state.discountPct; discountLabel.textContent = `${state.discountPct}%`; }
     range.addEventListener('input', ()=>{ state.discountPct = +range.value; persist(); renderTotals(); discountLabel.textContent = `${state.discountPct}%`; });
 
-    // ---------- History ----------
     function ordersServedCounters(){
       const todayStr = new Date().toDateString();
       const today = state.history.filter(h=> new Date(h.id).toDateString() === todayStr).length;
@@ -738,7 +764,7 @@
       list.querySelectorAll('[data-reorder]').forEach(btn=>btn.addEventListener('click',()=>{
         const id = +btn.getAttribute('data-reorder');
         const h = state.history.find(x=>x.id===id); if(!h) return;
-        h.items.forEach(it => addToCart({ id: it.id || null, name: it.name, unitPrice: it.unit, qty: it.qty, meta: it.meta || null, combo: it.combo || null, drinks: it.drinks || null }));
+        h.items.forEach(it => addToCart({ id: it.id || null, name: it.name, unitPrice: it.unit, qty: it.qty, meta: it.meta||null, combo: it.combo||null, drinks: it.drinks||null }));
       }));
       list.querySelectorAll('[data-delete]').forEach(btn=>btn.addEventListener('click',()=>{
         const id = +btn.getAttribute('data-delete');
@@ -747,7 +773,6 @@
     }
     document.getElementById('clearHistoryBtn').addEventListener('click',()=>{ if(confirm('Clear all saved orders?')){ state.history=[]; persistHistory(); renderHistory(); ordersServedCounters(); } });
 
-    // ---------- Tabs ----------
     const tabButtons = document.querySelectorAll('[data-tab]');
     function selectTab(which){
       document.getElementById('tab-summary').hidden = which!== 'summary';
@@ -761,7 +786,6 @@
     }
     tabButtons.forEach(b=>b.addEventListener('click',()=>selectTab(b.getAttribute('data-tab'))));
 
-    // ---------- Combo/Bundle Wizard ----------
     const comboModal = document.getElementById('comboModal');
     const comboTitle = document.getElementById('comboTitle');
     const comboSteps = document.getElementById('comboSteps');
@@ -770,7 +794,6 @@
     const comboNext = document.getElementById('comboNext');
     document.getElementById('closeCombo').addEventListener('click', ()=> comboModal.close());
 
-    // FIXED: loyalty vs paid items, and specialty surcharge
     function openComboWizard(item, qty){
       const pizzasNeeded = item.pizzasIncluded || 0;
       const drinksNeeded = item.drinksIncluded || 0;
@@ -779,7 +802,7 @@
 
       const pizzaCounts = {};
       const drinkCounts = {};
-      let step = pizzasNeeded>0 ? 0 : (drinksNeeded>0 ? 1 : 2); // 0=pizzas, 1=drinks, 2=confirm
+      let step = pizzasNeeded>0 ? 0 : (drinksNeeded>0 ? 1 : 2);
 
       const renderSteps = ()=>{
         const parts = [];
@@ -853,7 +876,6 @@
         }
         if (step===1){ step=2; rerender(); return; }
 
-        // step === 2 -> finalize
         const pizzaIds = toArrayByCounts(pizzaCounts);
         const drinksObj = Object.fromEntries(Object.entries(drinkCounts).filter(([,c])=>c>0));
 
@@ -869,7 +891,6 @@
         if (drinkParts.length) metaParts.push(`Drinks: ${drinkParts.join(', ')}`);
         const meta = metaParts.join(' • ');
 
-        // Loyalty reward (free)
         if (item.id === 'loy-reward'){
           addToCart({
             id:item.id,
@@ -887,7 +908,6 @@
           return;
         }
 
-        // Paid items (deals/packs/bundles)
         let unitPrice = item.price || 0;
         if (item.allow === 'both' && item.surchargeSpecialty){
           const specialtyCount = pizzaIds.filter(pid => isSpecialtyId(pid)).length;
@@ -926,7 +946,6 @@
       comboModal.showModal();
     }
 
-    // ---------- Ingredients Aggregation ----------
     function aggregateIngredients(){
       const tally = {};
       const add = (name, n=1)=>{ if(!name) return; tally[name] = (tally[name]||0)+n; };
@@ -962,7 +981,6 @@
       wrap.innerHTML = entries.map(([name,count])=>`<div class="ing-list"><div>${name}</div><div><strong>x${count}</strong></div></div>`).join('');
     }
 
-    // Copy / Export actions
     document.getElementById('copyIngBtn').addEventListener('click',()=>{
       const tally = aggregateIngredients();
       const txt = Object.entries(tally).sort((a,b)=>a[0].localeCompare(b[0])).map(([n,c])=>`- ${n} x${c}`).join('\n');
@@ -981,10 +999,39 @@
       URL.revokeObjectURL(url);
     });
 
-    // ---------- Discount, Saver & Tabs ----------
-    function renderAll(){ renderCards(); renderCart(); renderFulfillment(); renderPizzaSaver(); renderTotals(); renderDiscount(); renderHistory(); }
+    function syncAutoBreadsticks(){
+      const getStuffedQty = state.cart.reduce((sum, l) => {
+        if (l.type === 'deal' && (l.id === 'dl-classic' || l.id === 'dl-special')) {
+          return sum + l.qty;
+        }
+        return sum;
+      }, 0);
+      const desiredQty = Math.min(2, getStuffedQty) * 4;
+      const autoBreadIdx = state.cart.findIndex(l =>
+        l.id === 'ex-bread' && l.meta === 'Auto (Get Stuffed)'
+      );
+      if (desiredQty === 0) {
+        if (autoBreadIdx !== -1) state.cart.splice(autoBreadIdx, 1);
+        return;
+      }
+      const breadItem = findMenuItem('ex-bread');
+      if (!breadItem) return;
+      if (autoBreadIdx === -1) {
+        state.cart.push({
+          id: 'ex-bread',
+          name: '🧄 Breadsticks',
+          unitPrice: breadItem.price,
+          qty: desiredQty,
+          type: 'extra',
+          meta: 'Auto (Get Stuffed)'
+        });
+      } else {
+        state.cart[autoBreadIdx].qty = desiredQty;
+      }
+    }
 
-    // ---------- Checkout / Reset ----------
+    function renderAll(){ renderCards(); syncAutoBreadsticks(); renderCart(); renderFulfillment(); renderPizzaSaver(); renderTotals(); renderDiscount(); renderHistory(); }
+
     function checkout(){
       if (!state.cart.length){ alert('Your order is empty.'); return; }
       const subtotal = state.cart.reduce((s,l)=>s + l.unitPrice*l.qty, 0);
@@ -1008,9 +1055,9 @@
       state.cart = [];
       state.discountPct = 0;
       state.pizzaSavers = 0;
+      syncAutoBreadsticks();
       persist();
       renderAll();
-      // Auto-start a new visit after checkout
       newVisit(true);
       selectTab('summary');
     }
@@ -1018,6 +1065,7 @@
       state.cart = [];
       state.discountPct = 0;
       state.pizzaSavers = 0;
+      syncAutoBreadsticks();
       persist(); renderAll(); renderIngredients();
     }
 
@@ -1026,7 +1074,6 @@
     document.getElementById('resetBtn').addEventListener('click', resetAll);
     document.getElementById('resetBtn2').addEventListener('click', resetAll);
 
-    // ---------- Theme ----------
     const themeBtn = document.getElementById('themeBtn');
     function applyTheme(t){
       document.documentElement.setAttribute('data-theme', t);
@@ -1037,11 +1084,10 @@
     applyTheme(localStorage.getItem('pizza_theme') || 'light');
     themeBtn.addEventListener('click',()=>{ const next = (localStorage.getItem('pizza_theme')||'light')==='light' ? 'dark' : 'light'; applyTheme(next); });
 
-    // ---------- LOYALTY (Cloud sync to your Google Apps Script) ----------
     const API_URL = 'https://script.google.com/macros/s/AKfycbzV2Rm1bdRN6Be_qBPMoGmXORVG8rRBLTeAnS_agrKm-nxRUNQr9smsozc3CviAynvrjQ/exec';
 
-    const REQUIRED_PUNCHES = 10; // 10th is free
-    const DAILY_LIMIT_HOURS = 0; // disable time cooldown
+    const REQUIRED_PUNCHES = 10;
+    const DAILY_LIMIT_HOURS = 0;
 
     const loy = {
       els: {
@@ -1079,7 +1125,7 @@
     saveVisit();
     loy.els.newVisitBtn.addEventListener('click', ()=> newVisit(false));
 
-    function isDoubleTuesday(){ return new Date().getDay() === 2; } // all Tuesday
+    function isDoubleTuesday(){ return new Date().getDay() === 2; }
 
     function loySetStatus(msg, ok=true){
       loy.els.status.innerHTML = `<span style="font-weight:700;${ok?'color:#1a7f37':'color:#b71c1c'}">${ok?'✓':'✗'}</span> ${msg}`;
@@ -1089,9 +1135,8 @@
       loy.els.dp.textContent = `Double Punch Tuesday: ${active ? 'ACTIVE all day' : 'auto all day on Tuesdays'}`;
       loy.els.dp.style.fontWeight = active ? '700' : '400';
     }
-    setInterval(loyUpdateDPLabel, 30_000); loyUpdateDPLabel();
+    setInterval(loyUpdateDPLabel, 30000); loyUpdateDPLabel();
 
-    // ---------- FIXED API: send RAW JSON for POST (no payload=...) ----------
     async function api(method, body){
       const url = API_URL + '?m=' + encodeURIComponent(method);
 
@@ -1107,7 +1152,6 @@
         return data;
       }
 
-      // POST: raw JSON body, NO headers -> text/plain (simple request)
       const res = await fetch(url, {
         method: 'POST',
         body: JSON.stringify(body || {})
@@ -1168,7 +1212,6 @@
     async function loyaltyAddPunch(){
       const id = (loy.els.id.value||'').trim();
       if(!id) return loySetStatus('Enter a player name.', false);
-      // Once-per-visit protection
       if (loy.visitPunched.includes(id)) {
         return loySetStatus('This player already got a punch this visit. Start a New Visit to punch again.', false);
       }
@@ -1196,7 +1239,6 @@
         const out = await api('undo', { id });
         loy.players[id] = out.player;
         loy.currentId = id;
-        // Allow re-punch in this visit after undo
         loy.visitPunched = loy.visitPunched.filter(x=>x!==id);
         saveVisit();
         loySetStatus('Removed one punch.', true);
@@ -1247,7 +1289,6 @@
       loyaltyLoad();
     }
 
-    // ---------- Init ----------
     renderAll();
     loyaltyBind();
   </script>
