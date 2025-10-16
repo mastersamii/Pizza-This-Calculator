@@ -13,6 +13,7 @@
       --muted: #5d677b;
       --border: #e5e7ef;
       --shadow: 0 10px 30px rgba(0,0,0,.08);
+
       --bg: #fafafa;
       --panel: #ffffff;
       --card: #ffffff;
@@ -20,6 +21,7 @@
       --text: var(--ink);
       --accent: var(--green);
       --radius: 16px;
+
       --bg-dark:#0f1220; --panel-dark:#13172a; --card-dark:#171c33;
       --chip-dark:#222847; --text-dark:#e8ecf8; --border-dark:#2a3156;
     }
@@ -88,15 +90,16 @@
 
     dialog{ width:min(760px,92vw); background:var(--panel); color:var(--text); border:1px solid var(--border); border-radius:18px; padding:0; }
     dialog::backdrop{ background:rgba(0,0,0,.6); }
-    .modal-header{ display:flex; align-items:center; justify-content:space-between; padding:16px 18px; border-bottom:1px solid var(--border); }
+    .modal-header{ display:flex; align-items:center; justify-content:space-between; padding:16px 18px; }
     .modal-body{ padding:16px; display:grid; gap:18px; }
     .option{ display:flex; justify-content:space-between; align-items:center; padding:10px 12px; border:1px solid var(--border); border-radius:12px; background:var(--card); }
 
     .selector-grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(180px,1fr)); gap:10px; }
     .select-card{ border:1px solid var(--border); background:var(--card); border-radius:12px; padding:10px; display:flex; flex-direction:column; gap:8px; }
     .select-title{ font-weight:700; }
-    .select-qty{ display:grid; grid-template-columns:32px 1fr 32px; align-items:center; gap:8px; }
+    .select-qty{ display:grid; grid-template-columns:28px 1fr 28px; align-items:center; gap:8px; }
     .select-qty button{ height:32px; border-radius:8px; border:1px solid var(--border); background:var(--chip); }
+    .quickrow{ display:grid; grid-template-columns:1fr 1fr; gap:6px; margin-top:6px; }
 
     .ing-list{ display:grid; grid-template-columns:1fr auto; gap:8px; }
     .ing-actions{ display:flex; gap:8px; justify-content:flex-end; }
@@ -343,7 +346,7 @@
         { id: 'cl-margh', name: '🍅🧀🌿 Margherita', price: 200, type:'pizza' },
         { id: 'cl-pepp',  name: '🍕 Pepperoni',      price: 200, type:'pizza' },
         { id: 'cl-salami',name: '🥩 Salami',         price: 200, type:'pizza' },
-        { id: 'cl-hamche',name: '🐷🧀 Ham',          price: 200, type:'pizza' },
+        { id: 'cl-hamche',name: '🐷🧀 Ham',  price: 200, type:'pizza' },
       ],
       specialty: [
         { id: 'sp-veg',   name: '🥦🍄 Vegetarian',  price: 250, type:'pizza' },
@@ -443,6 +446,52 @@
       return MENU.specialty.some(p => p.id === pid);
     }
 
+    function getAllPizzaUnitPricesForBOGO(){
+      const unitPrices = [];
+      const drinkPool = getDrinkPool();
+      const avgDrinkPrice = drinkPool.length
+        ? (drinkPool.reduce((s,d)=>s + d.price, 0) / drinkPool.length)
+        : 0;
+      const lunchBoxItem = findMenuItem('ex-lunch');
+      const lunchBoxPrice = lunchBoxItem ? lunchBoxItem.price : 0;
+
+      state.cart.forEach(line=>{
+        if (line.type === 'pizza'){
+          for(let i=0;i<line.qty;i++) unitPrices.push(line.unitPrice);
+          return;
+        }
+        if ((line.type === 'deal' || line.type === 'bundle') && Array.isArray(line.combo)){
+          const menuItem = findMenuItem(line.id) || {};
+          const pizzasIncluded = menuItem.pizzasIncluded || 0;
+          if (!pizzasIncluded) return;
+
+          let drinksValuePerUnit = 0;
+          if (line.drinks && typeof line.drinks === 'object'){
+            drinksValuePerUnit = Object.entries(line.drinks).reduce((sum,[did,count])=>{
+              const d = findMenuItem(did);
+              const price = d ? d.price : avgDrinkPrice;
+              return sum + price * count;
+            }, 0);
+          } else if (menuItem.drinksIncluded){
+            drinksValuePerUnit = (menuItem.drinksIncluded || 0) * avgDrinkPrice;
+          }
+
+          let lunchboxPerUnit = 0;
+          if (menuItem.includesLunchbox && !menuItem.isRefill){
+            lunchboxPerUnit = lunchBoxPrice;
+          }
+
+          const pizzaValuePerUnit = Math.max((line.unitPrice - drinksValuePerUnit - lunchboxPerUnit), 0);
+          const perPizza = pizzasIncluded > 0 ? (pizzaValuePerUnit / pizzasIncluded) : 0;
+          const totalPizzas = pizzasIncluded * line.qty;
+          for (let i=0; i<totalPizzas; i++){
+            unitPrices.push(perPizza);
+          }
+        }
+      });
+      return unitPrices;
+    }
+
     function cardHTML(item){
       const needsCombo = (item.pizzasIncluded||0) > 0 || (item.drinksIncluded||0) > 0;
       return `
@@ -531,12 +580,17 @@
         </div>`).join('');
 
       cart.querySelectorAll('[data-inc]').forEach(b=>b.addEventListener('click',()=>{
-        const i=+b.getAttribute('data-inc'); state.cart[i].qty++;
-        persist(); ensureAutoBreadsticks(); adjustAutoBreadsticks(); renderCart(); renderTotals(); renderIngredients();
+        const i=+b.getAttribute('data-inc');
+        state.cart[i].qty++;
+        syncAutoBreadsticks();
+        persist(); renderCart(); renderTotals(); renderIngredients();
       }));
       cart.querySelectorAll('[data-dec]').forEach(b=>b.addEventListener('click',()=>{
-        const i=+b.getAttribute('data-dec'); state.cart[i].qty--; if(state.cart[i].qty<=0) state.cart.splice(i,1);
-        persist(); ensureAutoBreadsticks(); adjustAutoBreadsticks(); renderCart(); renderTotals(); renderIngredients();
+        const i=+b.getAttribute('data-dec');
+        state.cart[i].qty--;
+        if(state.cart[i].qty<=0) state.cart.splice(i,1);
+        syncAutoBreadsticks();
+        persist(); renderCart(); renderTotals(); renderIngredients();
       }));
     }
 
@@ -545,10 +599,10 @@
       const found = state.cart.find(l =>
         `${l.id||l.name}|${l.unitPrice}|${l.type||''}|${(l.meta||'')}` === key &&
         JSON.stringify(l.combo||[])===JSON.stringify(line.combo||[]) &&
-        JSON.stringify(l.drinks||{})===JSON.stringify(line.drinks||{}) &&
-        JSON.stringify(l.perPizzaPrices||[])===JSON.stringify(line.perPizzaPrices||[])
+        JSON.stringify(l.drinks||{})===JSON.stringify(line.drinks||{})
       );
       if (found) found.qty += line.qty; else state.cart.push(line);
+      syncAutoBreadsticks();
       persist(); renderCart(); renderTotals(); renderIngredients();
     }
 
@@ -612,80 +666,29 @@
       }
     });
 
-    function totalDealQty(){
-      return state.cart.reduce((s,l)=> s + ((l.type==='deal')?l.qty:0), 0);
-    }
-    function currentAutoBreadQty(){
-      return state.cart
-        .filter(l=>l.id==='ex-bread' && /Auto w\/ Get Stuffed/i.test(l.meta||''))
-        .reduce((s,l)=> s + l.qty, 0);
-    }
-    function breadstickPrice(){
-      const item = findMenuItem('ex-bread');
-      return item ? item.price : 50;
-    }
-    function ensureAutoBreadsticks(){
-      const deals = totalDealQty();
-      const eligibleMax = Math.min(deals * 4, 8);
-      const haveAuto = currentAutoBreadQty();
-      const need = Math.max(0, eligibleMax - haveAuto);
-      if (need > 0){
-        addToCart({
-          id:'ex-bread',
-          name:'🧄 Breadsticks',
-          unitPrice: breadstickPrice(),
-          qty: need,
-          type:'extra',
-          meta:'Auto w/ Get Stuffed'
-        });
-      }
-    }
-    function adjustAutoBreadsticks(){
-      const deals = totalDealQty();
-      const eligibleMax = Math.min(deals * 4, 8);
-      let toKeep = eligibleMax;
-      for (let i=0;i<state.cart.length;i++){
-        const l = state.cart[i];
-        if (l.id==='ex-bread' && /Auto w\/ Get Stuffed/i.test(l.meta||'')){
-          if (toKeep<=0){ state.cart.splice(i,1); i--; continue; }
-          if (l.qty > toKeep){ l.qty = toKeep; }
-          toKeep -= l.qty;
-        }
-      }
-      persist();
-    }
-
     function computePromotions(){
       const day = new Date().getDay();
       let notes = [];
       let discount = 0;
 
       if (day>=1 && day<=3){
-        const prices = [];
-        state.cart.forEach(l=>{
-          if (l.type === 'pizza'){
-            for(let i=0;i<l.qty;i++) prices.push(l.unitPrice);
-          } else if ((l.type==='bundle' || l.type==='deal') && Array.isArray(l.perPizzaPrices)){
-            for(let i=0;i<l.qty;i++) prices.push(...l.perPizzaPrices);
-          }
-        });
-        if (prices.length >= 2){
-          prices.sort((a,b)=>b-a);
-          for (let i=0;i<prices.length; i+=2){
-            const p2 = prices[i+1];
+        const allPizzaUnitPrices = getAllPizzaUnitPricesForBOGO();
+        if (allPizzaUnitPrices.length >= 2){
+          allPizzaUnitPrices.sort((a,b)=>b-a);
+          for (let i=0; i<allPizzaUnitPrices.length; i+=2){
+            const p2 = allPizzaUnitPrices[i+1];
             if (typeof p2 === 'number') discount += p2 * 0.5;
           }
-          if (discount>0) notes.push('Mon–Wed BOGO 50% on pizzas applied');
+          if (discount>0) notes.push('Mon–Wed BOGO 50% on pizzas applied (incl. bundles/packs)');
         }
       }
 
       if (day>=4 && day<=6){
-        const deals = totalDealQty();
+        const deals = state.cart.reduce((s,l)=> s + ((l.type==='deal')?l.qty:0), 0);
         const eligible = Math.min(deals * 4, 8);
-        const breadUnit = breadstickPrice();
-        const totalBreadInCart = state.cart
-          .filter(l=>l.id==='ex-bread')
-          .reduce((s,l)=> s + l.qty, 0);
+        const breadItem = findMenuItem('ex-bread');
+        const breadUnit = breadItem ? breadItem.price : 50;
+        const totalBreadInCart = state.cart.filter(l=>l.id==='ex-bread').reduce((s,l)=> s + l.qty, 0);
         const freeQty = Math.min(eligible, totalBreadInCart);
         if (freeQty>0){
           discount += freeQty * breadUnit;
@@ -703,7 +706,7 @@
     }
 
     function renderTotals(){
-      adjustAutoBreadsticks();
+      syncAutoBreadsticks();
       const subtotal = state.cart.reduce((s,l)=>s + l.unitPrice*l.qty, 0);
       const manual = +(subtotal * (state.discountPct/100)).toFixed(2);
       const promo = computePromotions();
@@ -762,7 +765,7 @@
       list.querySelectorAll('[data-reorder]').forEach(btn=>btn.addEventListener('click',()=>{
         const id = +btn.getAttribute('data-reorder');
         const h = state.history.find(x=>x.id===id); if(!h) return;
-        h.items.forEach(it => addToCart({ id: it.id || null, name: it.name, unitPrice: it.unit, qty: it.qty, meta: it.meta || null, combo: it.combo || null, drinks: it.drinks || null, perPizzaPrices: it.perPizzaPrices || null }));
+        h.items.forEach(it => addToCart({ id: it.id || null, name: it.name, unitPrice: it.unit, qty: it.qty, meta: it.meta||null, combo: it.combo||null, drinks: it.drinks||null }));
       }));
       list.querySelectorAll('[data-delete]').forEach(btn=>btn.addEventListener('click',()=>{
         const id = +btn.getAttribute('data-delete');
@@ -810,23 +813,13 @@
         comboSteps.innerHTML = parts.join(' · ');
       };
 
-      function distributeTo(counts, poolIds, targetTotal){
-        Object.keys(counts).forEach(k=>{ counts[k]=0; });
-        let remaining = targetTotal;
-        while (remaining>0){
-          for (const id of poolIds){
-            if (remaining===0) break;
-            counts[id] = (counts[id]||0) + 1;
-            remaining--;
-          }
-        }
-      }
+      function usedTotal(counts){ return Object.values(counts).reduce((a,b)=>a+b,0); }
 
       const renderGrid = (pool, counts, needed, label)=>{
-        const used = Object.values(counts).reduce((a,b)=>a+b,0);
+        const used = usedTotal(counts);
         const remaining = needed - used;
-        const poolIds = pool.map(p=>p.id);
         comboTitle.textContent = `${label} — pick ${needed} (remaining ${Math.max(0,remaining)})`;
+
         comboContent.innerHTML = `
           <div class="selector-grid">
             ${pool.map(p=>`
@@ -837,36 +830,52 @@
                   <output data-out="${p.id}">${counts[p.id]||0}</output>
                   <button data-plus="${p.id}">+</button>
                 </div>
+                <div class="quickrow">
+                  <button class="btn" data-half="${p.id}" title="Set this to half of needed">Half</button>
+                  <button class="btn" data-max="${p.id}" title="Fill this to max remaining">Max</button>
+                </div>
               </div>`).join('')}
           </div>
-          <div class="toolrow" style="justify-content:flex-end; margin-top:8px;">
-            <button class="btn" data-half>Half</button>
-            <button class="btn" data-max>Max</button>
-          </div>
         `;
+
         comboContent.querySelectorAll('[data-plus]').forEach(btn=>{
           btn.addEventListener('click',()=>{
             const id = btn.getAttribute('data-plus');
-            const currentUsed = Object.values(counts).reduce((a,b)=>a+b,0);
-            if (currentUsed < needed){ counts[id]=(counts[id]||0)+1; comboContent.querySelector(`[data-out="${id}"]`).value = counts[id]; renderGrid(pool, counts, needed, label); }
+            if (usedTotal(counts) < needed){
+              counts[id]=(counts[id]||0)+1;
+              renderGrid(pool, counts, needed, label);
+            }
           });
         });
         comboContent.querySelectorAll('[data-minus]').forEach(btn=>{
           btn.addEventListener('click',()=>{
             const id = btn.getAttribute('data-minus');
             counts[id]=Math.max(0,(counts[id]||0)-1);
-            comboContent.querySelector(`[data-out="${id}"]`).value = counts[id];
             renderGrid(pool, counts, needed, label);
           });
         });
-        comboContent.querySelector('[data-half]').addEventListener('click', ()=>{
-          const target = Math.ceil(needed/2);
-          distributeTo(counts, poolIds, target);
-          renderGrid(pool, counts, needed, label);
+
+        comboContent.querySelectorAll('[data-half]').forEach(btn=>{
+          btn.addEventListener('click',()=>{
+            const id = btn.getAttribute('data-half');
+            const current = counts[id]||0;
+            const usedWithout = used - current;
+            const remainingForThis = needed - usedWithout;
+            const target = Math.min(Math.ceil(needed/2), Math.max(0, remainingForThis));
+            counts[id] = Math.max(0, target);
+            renderGrid(pool, counts, needed, label);
+          });
         });
-        comboContent.querySelector('[data-max]').addEventListener('click', ()=>{
-          distributeTo(counts, poolIds, needed);
-          renderGrid(pool, counts, needed, label);
+
+        comboContent.querySelectorAll('[data-max]').forEach(btn=>{
+          btn.addEventListener('click',()=>{
+            const id = btn.getAttribute('data-max');
+            const current = counts[id]||0;
+            const usedWithout = used - current;
+            const remainingForThis = Math.max(0, needed - usedWithout);
+            counts[id] = remainingForThis;
+            renderGrid(pool, counts, needed, label);
+          });
         });
 
         comboPrev.style.display = step>0 ? 'inline-flex' : 'none';
@@ -925,8 +934,7 @@
             type:'bundle',
             combo: pizzaIds,
             drinks: drinksObj,
-            meta: meta + ' • Loyalty free',
-            perPizzaPrices: pizzaIds.map(()=>0)
+            meta: meta + ' • Loyalty free'
           });
           addToCart({ id:'ex-bread', name:'🧄 Breadsticks (Reward)', unitPrice:0, qty:2, type:'extra', meta:'Loyalty free' });
           comboModal.close();
@@ -935,17 +943,9 @@
         }
 
         let unitPrice = item.price || 0;
-        let perPizzaPrices = [];
-        if ((item.type==='bundle' || item.type==='deal') && (item.pizzasIncluded||0) > 0){
-          const basePer = (item.price||0) / (item.pizzasIncluded||pizzaIds.length||1);
-          perPizzaPrices = pizzaIds.map(pid => {
-            const add = (item.allow==='both' && item.surchargeSpecialty && isSpecialtyId(pid)) ? item.surchargeSpecialty : 0;
-            return basePer + add;
-          });
-          if (item.allow === 'both' && item.surchargeSpecialty){
-            const specialtyCount = pizzaIds.filter(pid => isSpecialtyId(pid)).length;
-            unitPrice += specialtyCount * item.surchargeSpecialty;
-          }
+        if (item.allow === 'both' && item.surchargeSpecialty){
+          const specialtyCount = pizzaIds.filter(pid => isSpecialtyId(pid)).length;
+          unitPrice += specialtyCount * item.surchargeSpecialty;
         }
 
         addToCart({
@@ -956,14 +956,8 @@
           type: item.type,
           combo: pizzaIds,
           drinks: drinksObj,
-          meta,
-          perPizzaPrices: perPizzaPrices.length ? perPizzaPrices : undefined
+          meta
         });
-
-        if (item.type==='deal'){
-          ensureAutoBreadsticks();
-          adjustAutoBreadsticks();
-        }
 
         comboModal.close();
         selectTab('summary');
@@ -1039,7 +1033,44 @@
       URL.revokeObjectURL(url);
     });
 
-    function renderAll(){ renderCards(); renderCart(); renderFulfillment(); renderPizzaSaver(); renderTotals(); renderDiscount(); renderHistory(); }
+    function syncAutoBreadsticks(){
+      const today = new Date().getDay(); // 0 Sun ... 6 Sat
+      const isThuSat = (today>=4 && today<=6);
+      const getStuffedQty = state.cart.reduce((sum, l) => {
+        if (l.type === 'deal' && (l.id === 'dl-classic' || l.id === 'dl-special')) {
+          return sum + l.qty;
+        }
+        return sum;
+      }, 0);
+      const desiredQty = isThuSat ? Math.min(2, getStuffedQty) * 4 : 0;
+
+      const autoBreadIdx = state.cart.findIndex(l =>
+        l.id === 'ex-bread' && l.meta === 'Auto (Get Stuffed)'
+      );
+
+      if (desiredQty === 0) {
+        if (autoBreadIdx !== -1) state.cart.splice(autoBreadIdx, 1);
+        return;
+      }
+
+      const breadItem = findMenuItem('ex-bread');
+      if (!breadItem) return;
+
+      if (autoBreadIdx === -1) {
+        state.cart.push({
+          id: 'ex-bread',
+          name: '🧄 Breadsticks',
+          unitPrice: breadItem.price,
+          qty: desiredQty,
+          type: 'extra',
+          meta: 'Auto (Get Stuffed)'
+        });
+      } else {
+        state.cart[autoBreadIdx].qty = desiredQty;
+      }
+    }
+
+    function renderAll(){ renderCards(); syncAutoBreadsticks(); renderCart(); renderFulfillment(); renderPizzaSaver(); renderTotals(); renderDiscount(); renderHistory(); }
 
     function checkout(){
       if (!state.cart.length){ alert('Your order is empty.'); return; }
@@ -1050,7 +1081,7 @@
       const total = +(subtotal + deliveryFee - manual - promo.discount).toFixed(2);
       const entry = {
         id: Date.now(),
-        items: state.cart.map(l=>({ id: l.id || null, name: l.name, qty: l.qty, unit: l.unitPrice, meta: l.meta||null, combo: l.combo||null, drinks: l.drinks||null, perPizzaPrices: l.perPizzaPrices||null, lineTotal:+(l.unitPrice*l.qty).toFixed(2) })),
+        items: state.cart.map(l=>({ id: l.id || null, name: l.name, qty: l.qty, unit: l.unitPrice, meta: l.meta||null, combo: l.combo||null, drinks: l.drinks||null, lineTotal:+(l.unitPrice*l.qty).toFixed(2) })),
         discountPct: state.discountPct,
         subtotal:+subtotal.toFixed(2),
         deliveryFee,
@@ -1064,6 +1095,7 @@
       state.cart = [];
       state.discountPct = 0;
       state.pizzaSavers = 0;
+      syncAutoBreadsticks();
       persist();
       renderAll();
       newVisit(true);
@@ -1073,6 +1105,7 @@
       state.cart = [];
       state.discountPct = 0;
       state.pizzaSavers = 0;
+      syncAutoBreadsticks();
       persist(); renderAll(); renderIngredients();
     }
 
@@ -1142,7 +1175,7 @@
       loy.els.dp.textContent = `Double Punch Tuesday: ${active ? 'ACTIVE all day' : 'auto all day on Tuesdays'}`;
       loy.els.dp.style.fontWeight = active ? '700' : '400';
     }
-    setInterval(loyUpdateDPLabel, 30_000); loyUpdateDPLabel();
+    setInterval(loyUpdateDPLabel, 30000); loyUpdateDPLabel();
 
     async function api(method, body){
       const url = API_URL + '?m=' + encodeURIComponent(method);
