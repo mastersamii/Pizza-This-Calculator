@@ -376,6 +376,10 @@
         { id: 'bd-medium-spec', name: '🍕 Medium Pizza Meal: 1 Specialty + 4 Drinks', price: 340, type:'bundle', pizzasIncluded:1, allow:'specialty', drinksIncluded:4 },
         { id: 'bd-large',       name: '🍕 Large Pizza Meal: 2 Classic + 8 Drinks',    price: 450, type:'bundle', pizzasIncluded:2, allow:'classic',   drinksIncluded:8 },
         { id: 'bd-large-spec',  name: '🍕 Large Pizza Meal: 2 Specialty + 8 Drinks',  price: 550, type:'bundle', pizzasIncluded:2, allow:'specialty', drinksIncluded:8 },
+        { id: 'bd-roll-medium', name: '🍕 Rollin’ Feast: 6 Rolls + 4 Drinks', price: 520, type:'bundle', drinksIncluded:4, rollCount:6,
+          description:'6 pizza rolls + 4 drinks. Each roll uses 1 dough, 1 mozzarella, 1 sauce, and 2 pepperoni.' },
+        { id: 'bd-roll-large', name: '🍕 Rollin’ Banquet: 12 Rolls + 8 Drinks', price: 980, type:'bundle', drinksIncluded:8, rollCount:12,
+          description:'12 pizza rolls + 8 drinks. Each roll uses 1 dough, 1 mozzarella, 1 sauce, and 2 pepperoni.' },
       ],
       extras: [
         { id: 'ex-bread', name: '🧄 Breadsticks', price: 50, type:'extra' },
@@ -384,6 +388,7 @@
         { id: 'ex-water', name: '🚰 Water',       price: 40, type:'extra', isDrink:true },
         { id: 'ex-beer',  name: '🍺 Beer',        price: 55, type:'extra', isDrink:true },
         { id: 'ex-lunch', name: '🍱 Lunch Box',   price: 360, type:'extra' },
+        { id: 'ex-pizza-roll', name: '🍕 Pizza Roll', price: 90, type:'extra' },
       ],
     };
 
@@ -395,6 +400,7 @@
       'sp-veg'  : { 'Black Olive':2, 'Bell Pepper':2, 'Tomato Sauce':1, 'Pizza Cheese':1, 'Dough':1 },
       'sp-haw'  : { 'Pineapple':2, 'Ham':1, 'Tomato Sauce':1, 'Pizza Cheese':1, 'Dough':1 },
       'sp-diav' : { 'Pepperoni':1, 'Black Olive':1, 'Jalapeño':1, 'Tomato Sauce':1, 'Pizza Cheese':1, 'Dough':1 },
+      'ex-pizza-roll': { 'Dough':1, 'Mozzarella':1, 'Tomato Sauce':1, 'Pepperoni':2 },
       'ex-bread': { 'Flour':1, 'Yeast':1, 'Olive Oil':1 },
     };
 
@@ -997,7 +1003,11 @@
       };
 
       state.cart.forEach(line=>{
-        if(line.type==='pizza' && line.id && RECIPE_MAP[line.id]){
+        if(line.id === 'bd-roll-medium'){
+          applyRecipe(RECIPE_MAP['ex-pizza-roll'], line.qty * 6);
+        } else if(line.id === 'bd-roll-large'){
+          applyRecipe(RECIPE_MAP['ex-pizza-roll'], line.qty * 12);
+        } else if(line.type==='pizza' && line.id && RECIPE_MAP[line.id]){
           applyRecipe(RECIPE_MAP[line.id], line.qty);
         } else if ((line.type==='bundle' || line.type==='deal') && Array.isArray(line.combo) && line.combo.length){
           line.combo.forEach(pid=>{
