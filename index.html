@@ -256,7 +256,8 @@
 
           <div id="tab-ingredients" role="tabpanel" hidden>
             <div class="small muted" style="margin-bottom:6px;">Auto-aggregated from your current cart using each pizza's recipe and your bundle selections.</div>
-            <div id="ingredientList" class="order-card" style="padding:12px;">
+            <div class="option" style="margin-bottom:10px"><div><strong>Known ingredient cost</strong><div class="small">Based on store purchase prices; excludes unpriced items</div></div><strong id="knownIngredientCost">$0.00</strong></div>
+             <div id="ingredientList" class="order-card" style="padding:12px;">
               <div class="muted">No ingredients yet. Add items to the cart.</div>
             </div>
             <div class="ing-actions" style="margin-top:10px;">
@@ -356,6 +357,10 @@
         { id: 'sp-veg',   name: '🥦🍄 Vegetarian',  price: 250, type:'pizza' },
         { id: 'sp-haw',   name: '🍍 Hawaiian',     price: 250, type:'pizza' },
         { id: 'sp-diav',  name: '🌶️ Diavola',      price: 250, type:'pizza' },
+        { id: 'sp-double-pepp', name: '🍕 Double Pepperoni', price: 250, type:'pizza' },
+        { id: 'sp-jalapepp', name: '🌶️ Jalapeño Pepperoni', price: 250, type:'pizza' },
+        { id: 'sp-tompesto', name: '🍅 Tomato Pesto', price: 250, type:'pizza' },
+        { id: 'sp-mushroom', name: '🍄 Mushroom', price: 250, type:'pizza' },
       ],
       deals: [
         { id: 'dl-classic', name: 'Get Stuffed: Classic',   price: 800, type:'deal',   pizzasIncluded:4, allow:'classic',   drinksIncluded:16 },
@@ -389,9 +394,22 @@
         { id: 'ex-beer',  name: '🍺 Beer',        price: 55, type:'extra', isDrink:true },
         { id: 'ex-lunch', name: '🍱 Lunch Box',   price: 360, type:'extra' },
         { id: 'ex-pizza-roll', name: '🍕 Pizza Roll', price: 90, type:'extra' },
+        { id: 'ex-mozz-sticks', name: '🧀 Mozzarella Sticks', price: 75, type:'extra' },
+        { id: 'ex-garlic-bread', name: '🧄 Garlic Bread', price: 65, type:'extra' },
+        { id: 'ex-sweet-tea', name: '🥤 Sweet Tea', price: 45, type:'extra', isDrink:true },
+        { id: 'ex-green-cow', name: '🧃 Green Cow', price: 60, type:'extra', isDrink:true },
       ],
     };
 
+    // Store purchase prices, separate from customer menu prices.
+    const INGREDIENT_COSTS = {
+      'Bell Pepper':5, 'Pepperoni':8, 'Jalapeño':6, 'Mozzarella':10,
+      'Ham':8, 'Salami':8, 'Tomato Sauce':10, 'Flour':6,
+      'Olive Oil':8, 'Yeast':10, 'Pizza Cheese':4, 'Mushrooms':6,
+      'Tomatoes':5, 'Pesto':8, 'Butter':6, 'Garlic':4,
+      'Breadcrumbs':4, 'Bread Loaf':8, 'Pineapple':6,
+      'Lunch Box':275, 'Black Olive':8, 'Eggs':8, 'Sweet Tea':10, 'Green Cow':20
+    };
     const RECIPE_MAP = {
       'cl-margh': { 'Mozzarella':2, 'Tomato Sauce':1, 'Pizza Cheese':1, 'Dough':1 },
       'cl-pepp' : { 'Pepperoni':2, 'Tomato Sauce':1, 'Pizza Cheese':1, 'Dough':1 },
@@ -400,6 +418,14 @@
       'sp-veg'  : { 'Black Olive':2, 'Bell Pepper':2, 'Tomato Sauce':1, 'Pizza Cheese':1, 'Dough':1 },
       'sp-haw'  : { 'Pineapple':2, 'Ham':1, 'Tomato Sauce':1, 'Pizza Cheese':1, 'Dough':1 },
       'sp-diav' : { 'Pepperoni':1, 'Black Olive':1, 'Jalapeño':1, 'Tomato Sauce':1, 'Pizza Cheese':1, 'Dough':1 },
+      'sp-double-pepp': { 'Pepperoni':4, 'Tomato Sauce':1, 'Pizza Cheese':1, 'Dough':1 },
+      'sp-jalapepp': { 'Pepperoni':1, 'Jalapeño':1, 'Tomato Sauce':1, 'Pizza Cheese':1, 'Dough':1 },
+      'sp-tompesto': { 'Tomatoes':1, 'Pesto':1, 'Tomato Sauce':1, 'Pizza Cheese':1, 'Dough':1 },
+      'sp-mushroom': { 'Mushrooms':2, 'Tomato Sauce':1, 'Pizza Cheese':1, 'Dough':1 },
+      'ex-mozz-sticks': { 'Eggs':1, 'Mozzarella':1, 'Breadcrumbs':1 },
+      'ex-garlic-bread': { 'Bread Loaf':1, 'Butter':1, 'Garlic':1 },
+      'ex-sweet-tea': { 'Sweet Tea':1 },
+      'ex-green-cow': { 'Green Cow':1 },
       'ex-pizza-roll': { 'Dough':1, 'Mozzarella':1, 'Tomato Sauce':1, 'Pepperoni':2 },
       'ex-bread': { 'Flour':1, 'Yeast':1, 'Olive Oil':1 },
     };
@@ -447,6 +473,10 @@
       return null;
     }
     function getDrinkPool(){ return MENU.extras.filter(x=>x.isDrink); }
+    const COMBO_DRINK_UPCHARGES = { 'ex-green-cow': 20 };
+    function drinkUpcharge(drinks){
+      return Object.entries(drinks).reduce((sum,[id,count]) => sum + (COMBO_DRINK_UPCHARGES[id] || 0) * count, 0);
+    }
     function getPizzaPool(allow){
       if (allow==='specialty') return MENU.specialty;
       if (allow==='both') return [...MENU.classic, ...MENU.specialty];
@@ -775,7 +805,7 @@
       list.querySelectorAll('[data-reorder]').forEach(btn=>btn.addEventListener('click',()=>{
         const id = +btn.getAttribute('data-reorder');
         const h = state.history.find(x=>x.id===id); if(!h) return;
-        h.items.forEach(it => addToCart({ id: it.id || null, name: it.name, unitPrice: it.unit, qty: it.qty, meta: it.meta||null, combo: it.combo||null, drinks: it.drinks||null }));
+        h.items.forEach(it => addToCart({ id: it.id || null, name: it.name, unitPrice: it.unit, qty: it.qty, type:it.type || findMenuItem(it.id)?.type || 'extra', meta: it.meta||null, combo: it.combo||null, drinks: it.drinks||null }));
       }));
       list.querySelectorAll('[data-delete]').forEach(btn=>btn.addEventListener('click',()=>{
         const id = +btn.getAttribute('data-delete');
@@ -834,7 +864,7 @@
           <div class="selector-grid">
             ${pool.map(p=>`
               <div class="select-card" data-id="${p.id}">
-                <div class="select-title">${p.name}</div>
+                <div class="select-title">${p.name}${label === 'Drinks' && COMBO_DRINK_UPCHARGES[p.id] ? ` <span class="price">(+${currency(COMBO_DRINK_UPCHARGES[p.id])})</span>` : ''}</div>
                 <div class="select-qty">
                   <button data-minus="${p.id}">−</button>
                   <output data-out="${p.id}">${counts[p.id]||0}</output>
@@ -897,13 +927,16 @@
         comboTitle.textContent = item.name || 'Confirm Selection';
         const fmtName = (id)=> (findMenuItem(id)||{}).name?.replace(/^[^ ]+ /,'') || id;
         const pizzaList = Object.entries(pizzaCounts).filter(([,c])=>c>0).map(([id,c])=>`${fmtName(id)} x${c}`);
-        const drinkList = Object.entries(drinkCounts).filter(([,c])=>c>0).map(([id,c])=>`${fmtName(id)} x${c}`);
+        const drinkList = Object.entries(drinkCounts).filter(([,c])=>c>0).map(([id,c])=>`${fmtName(id)} x${c}${COMBO_DRINK_UPCHARGES[id] ? ` (+${currency(COMBO_DRINK_UPCHARGES[id]*c)})` : ''}`);
         const info = (findMenuItem(item.id)?.description)||'';
+        const drinksExtra = drinkUpcharge(drinkCounts);
         comboContent.innerHTML = `
           <div class="summary" style="gap:10px;">
             ${pizzaList.length?`<div><strong>Pizzas:</strong> ${pizzaList.join(', ')}</div>`:''}
             ${drinkList.length?`<div><strong>Drinks:</strong> ${drinkList.join(', ')}</div>`:''}
             ${info?`<div class="small muted">${info}</div>`:''}
+            ${drinksExtra ? `<div><strong>Green Cow upcharge:</strong> ${currency(drinksExtra)} per combo</div>` : ''}
+            <div><strong>Combo price:</strong> ${currency((item.id === 'loy-reward' ? 0 : item.price || 0) + drinksExtra + (item.allow === 'both' ? (toArrayByCounts(pizzaCounts).filter(isSpecialtyId).length * (item.surchargeSpecialty || 0)) : 0))} each</div>
           </div>
         `;
         comboPrev.style.display = (drinksNeeded>0 || pizzasNeeded>0) ? 'inline-flex' : 'none';
@@ -1014,6 +1047,14 @@
             if (RECIPE_MAP[pid]) applyRecipe(RECIPE_MAP[pid], line.qty);
           });
           if (line.id==='bd-pack') add('Lunch Box', line.qty);
+          Object.entries(line.drinks || {}).forEach(([did,count])=>{
+            if (RECIPE_MAP[did]) applyRecipe(RECIPE_MAP[did], count * line.qty);
+          });
+        } else if ((line.type==='bundle' || line.type==='deal') && line.drinks){
+          Object.entries(line.drinks).forEach(([did,count])=>{
+            if (RECIPE_MAP[did]) applyRecipe(RECIPE_MAP[did], count * line.qty);
+          });
+          if (line.id==='bd-pack') add('Lunch Box', line.qty);
         } else if(line.id && RECIPE_MAP[line.id]){
           applyRecipe(RECIPE_MAP[line.id], line.qty);
         }
@@ -1025,7 +1066,8 @@
       const wrap = document.getElementById('ingredientList');
       const tally = aggregateIngredients();
       const entries = Object.entries(tally).sort((a,b)=> a[0].localeCompare(b[0]));
-      if(entries.length===0){ wrap.innerHTML = '<div class="muted">No ingredients yet. Add items to the cart.</div>'; return; }
+      document.getElementById('knownIngredientCost').textContent = currency(entries.reduce((sum,[name,count])=>sum+(INGREDIENT_COSTS[name]||0)*count,0));
+       if(entries.length===0){ wrap.innerHTML = '<div class="muted">No ingredients yet. Add items to the cart.</div>'; return; }
       wrap.innerHTML = entries.map(([name,count])=>`<div class="ing-list"><div>${name}</div><div><strong>x${count}</strong></div></div>`).join('');
     }
 
@@ -1095,7 +1137,7 @@
       const total = +(subtotal + deliveryFee - manual - promo.discount).toFixed(2);
       const entry = {
         id: Date.now(),
-        items: state.cart.map(l=>({ id: l.id || null, name: l.name, qty: l.qty, unit: l.unitPrice, meta: l.meta||null, combo: l.combo||null, drinks: l.drinks||null, lineTotal:+(l.unitPrice*l.qty).toFixed(2) })),
+        items: state.cart.map(l=>({ id: l.id || null, name: l.name, qty: l.qty, unit: l.unitPrice, type:l.type, meta: l.meta||null, combo: l.combo||null, drinks: l.drinks||null, lineTotal:+(l.unitPrice*l.qty).toFixed(2) })),
         discountPct: state.discountPct,
         subtotal:+subtotal.toFixed(2),
         deliveryFee,
