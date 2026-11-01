@@ -170,8 +170,13 @@
           </div>
 
           <div class="section">
-            <h3 style="margin:0 0 8px 0">Sides & Drinks</h3>
-            <div class="cards" id="extras"></div>
+            <h3 style="margin:0 0 8px 0">Sides</h3>
+            <div class="cards" id="sides"></div>
+          </div>
+
+          <div class="section">
+            <h3 style="margin:0 0 8px 0">Drinks</h3>
+            <div class="cards" id="drinks"></div>
           </div>
         </div>
       </section>
@@ -559,7 +564,8 @@
       const deals = document.getElementById('deals');
       const packs = document.getElementById('packs');
       const bundles = document.getElementById('bundles');
-      const extras = document.getElementById('extras');
+      const sides = document.getElementById('sides');
+      const drinks = document.getElementById('drinks');
 
       const make = arr => arr.map(cardHTML).join('');
       classic.innerHTML = make(MENU.classic);
@@ -567,7 +573,8 @@
       deals.innerHTML = make(MENU.deals);
       packs.innerHTML = make(MENU.packs);
       bundles.innerHTML = make(MENU.bundles);
-      extras.innerHTML = make(MENU.extras);
+      sides.innerHTML = make(MENU.extras.filter(item => !item.isDrink));
+      drinks.innerHTML = make(MENU.extras.filter(item => item.isDrink));
 
       const allItems = [
         ...MENU.classic, ...MENU.specialty, ...MENU.deals,
